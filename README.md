@@ -1,6 +1,6 @@
 # 🐼 Seating_Pandas Branch
 
-This branch is a specialized seating arrangement generator for the college Amrita Vishwa Vidyapeetham. It utilizes the power of the Pandas library to create seating arrangements by uploading a CSV file to the code.
+This is a specialized seating arrangement generator for the college Amrita Vishwa Vidyapeetham, Bengaluru Campus. It utilizes the power of the Pandas library to create seating arrangements by uploading a CSV file to the code.
 
 ---
 
@@ -13,7 +13,7 @@ This branch is a specialized seating arrangement generator for the college Amrit
 
 ## 📄 Description
 
-The **seating_pandas** branch automates the seating arrangement process for exams at Amrita Vishwa Vidyapeetham, Bangalore. By uploading a CSV file, the code generates the seating arrangement efficiently and accurately. This project supports the arrangement of seating for the seven B-Tech courses mentioned in the main branch:
+The **seating_pandas** branch automates the seating arrangement process for exams at Amrita Vishwa Vidyapeetham, Bangalore. By uploading a CSV file, the code generates the seating arrangement efficiently and accurately. This project supports the arrangement of seating for the seven B-Tech courses mentioned below:
 - 💻 CSE (Computer Science Engineering)
 - 🤖 AIE (Artificial Intelligence Engineering)
 - 📊 AID (Artificial Intelligence and Data Science)
@@ -32,6 +32,15 @@ The **seating_pandas** branch automates the seating arrangement process for exam
 
 ---
 
+## 💡 Concepts Used
+- 🖼️ **Tkinter**
+- 🎲 **Random**
+- 🛠️ **Pandas**
+- 📋 **FPDF**
+
+---
+
 **NOTE**:
 
-A **sample** CSV file in the repository contains the students' roll numbers for the Python script to function. Any CSV file can be uploaded in the code with that particular pattern of roll numbers in the sample CSV file
+- A **sample** CSV file in the repository contains the students' roll numbers for the Python script to function. Any CSV file can be uploaded in the code with that particular pattern of roll numbers in the sample CSV file
+- A sample image is provided in the repository which gives an idea of the seating arrangement 
