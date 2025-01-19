@@ -3,6 +3,7 @@ import random
 import tkinter as tk 
 from tkinter import ttk
 from fpdf import FPDF
+from datetime import datetime
 import os
 
 classes = { 
@@ -31,15 +32,15 @@ student_year_lists = {
     "RAE_year_1": [], "RAE_year_2": [], "RAE_year_3": []
 }
 
-#This input is used to get the current year from the user to determine the first, second and third year students
+# This input is used to get the current year from the user to determine the first, second and third year students
 current_year = input("Enter the current year: ")
 
 for reg_no in df["Registration numbers"]:
-    if reg_no[11:13] == current_year:
+    if reg_no[11:13] == current_year[-2:]:
         first_year_students.append(reg_no)
-    elif reg_no[11:13] == str(int(current_year) - 1):
+    elif reg_no[11:13] == str(int(current_year[-2:]) - 1).zfill(2):
         second_year_students.append(reg_no)
-    elif reg_no[11:13] == str(int(current_year) - 2):
+    elif reg_no[11:13] == str(int(current_year[-2:]) - 2).zfill(2):
         third_year_students.append(reg_no)
     else:
         print("Error")
@@ -175,46 +176,70 @@ classroom_data(classrooms_content)
 def save_as_pdf(arrangement, classes):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Arial", size=10, style='B')
 
+    today_date = datetime.today().strftime("%d-%m-%Y")
+    college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
+
+    # Title page
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
+    pdf.set_font("Arial", size=14, style='B')
+    pdf.cell(200, 10, txt=college_name, ln=True, align='C')
     pdf.cell(200, 10, txt="Seating Arrangement", ln=True, align='C')
-    pdf.set_font("Arial", size=10)
+    pdf.cell(200, 10, txt=f"Date: {today_date}", ln=True, align='C')
+    pdf.set_font("Arial", size=12, style='B')
 
     for capacity, details in classes.items():
-        for classroom_index in range(len(details['classrooms_list'])):
+        for classroom_index, classroom in enumerate(details['classrooms_list']):
             if classroom_index % 2 == 0 and classroom_index != 0:
                 pdf.add_page()
 
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt=f"Classroom {details['classrooms_list'][classroom_index]}", ln=True, align='C')
-            pdf.set_font("Arial", size=10)
+            # Add classroom title
+            pdf.set_font("Arial", size=16, style='B')
+            pdf.cell(200, 10, txt=f"Classroom {classroom}", ln=True, align='C')
+            pdf.set_font("Arial", size=12, style='B')
 
+            # Calculate table alignment
             table_width = details['columns'] * 40
+            start_x = (210 - table_width) / 2  
 
-            pdf.set_x(0)
+            # Add "Date" above Column 1 and "Door Side" above Column 5
+            pdf.set_x(start_x)
             for col in range(details['columns']):
-                pdf.cell(40, 12, txt=f"Column {col + 1}", border=1, align='C')
+                if col == 0:
+                    pdf.cell(40, 6, txt=f"Date: {today_date}", border=0, align='C')
+                elif col == 4:
+                    pdf.cell(40, 6, txt="Door Side", border=0, align='C')
+                else:
+                    pdf.cell(40, 6, txt="", border=0)
             pdf.ln()
 
-            for row in range(details['rows']): 
-                pdf.set_x(0)
+            # Add column headers
+            pdf.set_x(start_x)
+            for col in range(details['columns']):
+                pdf.cell(40, 6, txt=f"Column {col + 1}", border=1, align='C')
+            pdf.ln()
+
+            # Add seating arrangement
+            pdf.set_font("Arial", size=10, style='B')
+            for row in range(details['rows']):
+                pdf.set_x(start_x)
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
                     pdf.cell(40, 12, txt=seat if seat else "EMPTY", border=1, align='C')
                 pdf.ln()
             pdf.ln()
 
+    # Save the PDF
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "seating_arrangement.pdf")
     pdf.output(downloads_path)
+    print(f"PDF saved to {downloads_path}")
 
 def seating_gui(arrangement, classrooms_content, classes):
     root = tk.Tk()
     root.title("Seating Arrangement")
     root.state("zoomed")
 
-    # Main Canvas with Scrollbar
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
     scrollable_frame = ttk.Frame(canvas)
@@ -227,45 +252,58 @@ def seating_gui(arrangement, classrooms_content, classes):
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar.set)
 
-    # Save as PDF button
     save_button = ttk.Button(root, text="Save as PDF", command=lambda: save_as_pdf(arrangement, classes))
     save_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
-    # Fonts for GUI Elements
-    classroom_font = ("Arial", 24, "bold")
+    title_font = ("Arial", 28, "bold")
+    subtitle_font = ("Arial", 18, "bold")
+    classroom_font = ("Arial", 30, "bold")  # Larger font for classrooms
     header_font = ("Arial", 16, "bold")
-    seat_font = ("Arial", 12)
+    seat_font = ("Arial", 14, "bold")  # Slightly larger font for seats
 
-    # Loop through each classroom
-    classroom_row = 0
+    college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
+    today_date = datetime.today().strftime("%d-%m-%Y")
+
+    # Title and subtitle (centered)
+    title_label = tk.Label(scrollable_frame, text=college_name, font=title_font, anchor="center")
+    title_label.grid(row=0, column=0, columnspan=1, pady=10)
+    subtitle_label = tk.Label(scrollable_frame, text=f"Seating Arrangement\nDate: {today_date}", font=subtitle_font, anchor="center")
+    subtitle_label.grid(row=1, column=0, columnspan=1, pady=20)
+
+    classroom_row = 2
     for capacity, details in classes.items():
         for classroom_index, classroom in enumerate(details['classrooms_list']):
             frame = tk.Frame(scrollable_frame, pady=20)
             frame.grid(row=classroom_row, column=0, padx=50, pady=10, sticky="nsew")
             classroom_row += 1
 
-            # Classroom Title
-            title_label = tk.Label(frame, text=f"Room No.: {classroom}", font=classroom_font, anchor="center")
-            title_label.pack(pady=10)
+            # Classroom title (centered)
+            room_label = tk.Label(frame, text=f"Room No.: {classroom}", font=classroom_font, anchor="center")
+            room_label.pack(pady=10)
 
-            # Seating Grid for Classroom
+            # Seating frame
             seating_frame = tk.Frame(frame)
             seating_frame.pack(fill="both", expand=True)
 
-            # Serial Number Column Header
-            serial_label = tk.Label(seating_frame, text="S.No", font=header_font, borderwidth=1, relief="solid")
-            serial_label.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-
+            # Add "Date" above Column 1 and "Door Side" above Column 5
             for col in range(details['columns']):
-                col_label = tk.Label(seating_frame, text=f"Column {col + 1}", font=header_font, borderwidth=1, relief="solid")
-                col_label.grid(row=0, column=col + 1, padx=5, pady=5, sticky="nsew")
+                if col == 0:
+                    date_label = tk.Label(seating_frame, text=f"Date: {today_date}", font=header_font, borderwidth=1, relief="solid", anchor="center")
+                    date_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
+                elif col == 4:
+                    door_side_label = tk.Label(seating_frame, text="Door Side", font=header_font, borderwidth=1, relief="solid", anchor="center")
+                    door_side_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
+                else:
+                    empty_label = tk.Label(seating_frame, text="", font=header_font, anchor="center")
+                    empty_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
 
-            # Fill the grid with students
-            serial_number = 1
+            # Add column headers (centered)
+            for col in range(details['columns']):
+                col_label = tk.Label(seating_frame, text=f"Column {col + 1}", font=header_font, borderwidth=1, relief="solid", anchor="center")
+                col_label.grid(row=1, column=col, padx=5, pady=5, sticky="nsew")
+
+            # Add seating arrangement (centered)
             for row in range(details['rows']):
-                serial_label = tk.Label(seating_frame, text=str(serial_number), font=seat_font, borderwidth=1, relief="solid")
-                serial_label.grid(row=row + 1, column=0, padx=5, pady=5, sticky="nsew")
-
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
                     seat_label = tk.Label(
@@ -273,21 +311,20 @@ def seating_gui(arrangement, classrooms_content, classes):
                         text=seat if seat else "EMPTY",
                         font=seat_font,
                         borderwidth=1,
-                        relief="solid"
+                        relief="solid",
+                        anchor="center"
                     )
-                    seat_label.grid(row=row + 1, column=col + 1, padx=5, pady=5, sticky="nsew")
-                serial_number += 1
+                    seat_label.grid(row=row + 2, column=col, padx=5, pady=5, sticky="nsew")
 
-            # Configure dynamic resizing
-            seating_frame.columnconfigure(0, weight=1)
-            for col in range(1, details['columns'] + 1):
+            # Configure grid weights for centering
+            for col in range(details['columns']):
                 seating_frame.columnconfigure(col, weight=1)
-            for row in range(details['rows'] + 1):
+            for row in range(details['rows'] + 2):
                 seating_frame.rowconfigure(row, weight=1)
 
+    # Ensure the scrollable frame is properly centered
     scrollable_frame.columnconfigure(0, weight=1)
 
-    # Pack the canvas and scrollbar
     canvas.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
 
