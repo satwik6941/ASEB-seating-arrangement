@@ -5,6 +5,7 @@ from tkinter import ttk
 from fpdf import FPDF
 from datetime import datetime
 import os
+import fitz
 
 classes = { 
     "35_capacity": {"columns": 5, "rows": 7, "benches" : 35, "classrooms_list" : list(range(1,19))},
@@ -333,3 +334,19 @@ def seating_gui(arrangement, classrooms_content, classes):
 arrangement, classrooms_content = seating_arrangement(classes, students_data)
 
 seating_gui(arrangement, classrooms_content, classes)
+
+def extract_text_from_pdf(pdf_path):
+    document = fitz.open(pdf_path)
+    text = ""
+    for page_num in range(len(document)):
+        page = document.load_page(page_num)
+        
+        text += page.get_text()
+    
+    document.close()
+    
+    return text
+
+pdf_path = r"C:\Users\hi\Downloads\seating_arrangement.pdf"
+extracted_text = extract_text_from_pdf(pdf_path)
+print(extracted_text)
