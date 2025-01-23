@@ -15,9 +15,9 @@ classes = {
 columns = 5
 benches = 7
 total_benches = columns * benches
-sections = ['CSE', 'AIE', 'AID', 'ECE', 'EEE', 'MEE', 'RAE']
+sections = ['CSE', 'AIE', 'AID', 'ECE', 'EEE', 'EAC', 'ELC', 'MEE', 'RAE']
 
-df = pd.read_csv("seatingarrangement_data.csv")
+df = pd.read_csv("student list master upto 2023 (1).csv")
 
 first_year_students = []
 second_year_students = []
@@ -28,6 +28,8 @@ student_year_lists = {
     "AIE_year_1": [], "AIE_year_2": [], "AIE_year_3": [],
     "AID_year_1": [], "AID_year_2": [], "AID_year_3": [],
     "ECE_year_1": [], "ECE_year_2": [], "ECE_year_3": [],
+    "EAC_year_1": [], "EAC_year_2": [], "EAC_year_3": [],
+    "ELC_year_1": [], "ELC_year_2": [], "ELC_year_3": [],
     "EEE_year_1": [], "EEE_year_2": [], "EEE_year_3": [],
     "MEE_year_1": [], "MEE_year_2": [], "MEE_year_3": [],
     "RAE_year_1": [], "RAE_year_2": [], "RAE_year_3": []
@@ -56,6 +58,10 @@ def student_classification(first_year_students, second_year_students, third_year
             student_year_lists["AID_year_1"].append(student_roll_no1)
         elif student_roll_no1[8:11] == 'ECE':
             student_year_lists["ECE_year_1"].append(student_roll_no1)
+        elif student_roll_no1[8:11] == 'ELC':
+            student_year_lists["ELC_year_1"].append(student_roll_no1)
+        elif student_roll_no1[8:11] == 'EAC':
+            student_year_lists["EAC_year_1"].append(student_roll_no1)
         elif student_roll_no1[8:11] == 'EEE':
             student_year_lists["EEE_year_1"].append(student_roll_no1)
         elif student_roll_no1[8:11] == 'MEE':
@@ -74,6 +80,10 @@ def student_classification(first_year_students, second_year_students, third_year
             student_year_lists["AID_year_2"].append(student_roll_no2)
         elif student_roll_no2[8:11] == 'ECE':
             student_year_lists["ECE_year_2"].append(student_roll_no2)
+        elif student_roll_no1[8:11] == 'ELC':
+            student_year_lists["ELC_year_2"].append(student_roll_no1)
+        elif student_roll_no1[8:11] == 'EAC':
+            student_year_lists["EAC_year_2"].append(student_roll_no1)
         elif student_roll_no2[8:11] == 'EEE':
             student_year_lists["EEE_year_2"].append(student_roll_no2)
         elif student_roll_no2[8:11] == 'MEE':
@@ -92,6 +102,10 @@ def student_classification(first_year_students, second_year_students, third_year
             student_year_lists["AID_year_3"].append(student_roll_no3)
         elif student_roll_no3[8:11] == 'ECE':
             student_year_lists["ECE_year_3"].append(student_roll_no3)
+        elif student_roll_no1[8:11] == 'ELC':
+            student_year_lists["ELC_year_3"].append(student_roll_no1)
+        elif student_roll_no1[8:11] == 'EAC':
+            student_year_lists["EAC_year_3"].append(student_roll_no1)
         elif student_roll_no3[8:11] == 'EEE':
             student_year_lists["EEE_year_3"].append(student_roll_no3)
         elif student_roll_no3[8:11] == 'MEE':
