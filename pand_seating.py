@@ -80,10 +80,10 @@ def student_classification(first_year_students, second_year_students, third_year
             student_year_lists["AID_year_2"].append(student_roll_no2)
         elif student_roll_no2[8:11] == 'ECE':
             student_year_lists["ECE_year_2"].append(student_roll_no2)
-        elif student_roll_no1[8:11] == 'ELC':
-            student_year_lists["ELC_year_2"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'EAC':
-            student_year_lists["EAC_year_2"].append(student_roll_no1)
+        elif student_roll_no2[8:11] == 'ELC':
+            student_year_lists["ELC_year_2"].append(student_roll_no2)
+        elif student_roll_no2[8:11] == 'EAC':
+            student_year_lists["EAC_year_2"].append(student_roll_no2)
         elif student_roll_no2[8:11] == 'EEE':
             student_year_lists["EEE_year_2"].append(student_roll_no2)
         elif student_roll_no2[8:11] == 'MEE':
@@ -102,10 +102,10 @@ def student_classification(first_year_students, second_year_students, third_year
             student_year_lists["AID_year_3"].append(student_roll_no3)
         elif student_roll_no3[8:11] == 'ECE':
             student_year_lists["ECE_year_3"].append(student_roll_no3)
-        elif student_roll_no1[8:11] == 'ELC':
-            student_year_lists["ELC_year_3"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'EAC':
-            student_year_lists["EAC_year_3"].append(student_roll_no1)
+        elif student_roll_no3[8:11] == 'ELC':
+            student_year_lists["ELC_year_3"].append(student_roll_no3)
+        elif student_roll_no3[8:11] == 'EAC':
+            student_year_lists["EAC_year_3"].append(student_roll_no3)
         elif student_roll_no3[8:11] == 'EEE':
             student_year_lists["EEE_year_3"].append(student_roll_no3)
         elif student_roll_no3[8:11] == 'MEE':
@@ -135,27 +135,55 @@ def seating_arrangement(classes, students_data):
 
     arrangement = {}
     for capacity, details in classes.items():
-        arrangement[capacity] = [[[''] * details['rows'] for _ in range(details['columns'])] for _ in details['classrooms_list']]
+        arrangement[capacity] = [
+            [["" for _ in range(details['rows'])] for _ in range(details['columns'])]
+            for _ in details['classrooms_list']
+        ]
 
     for capacity, details in classes.items():
         for classroom in details['classrooms_list']:
             current_column = 0
             classrooms_content[f"classroom_{classroom}"] = []
+
             while current_column < details['columns']:
                 current_bench = 0
+
                 while current_bench < details['rows']:
-                    if bench_count % 2 == 0 and student_index < len(all_students):
-                        student = all_students[student_index]
-                        arrangement[capacity][classroom - details['classrooms_list'][0]][current_column][current_bench] = student
-                        classrooms_content[f"classroom_{classroom}"].append(student) 
-                        student_index += 1
+                    if capacity in ["40_capacity", "36_capacity"]:
+                        # Alternate seating strategy for classrooms with capacity 40 and 36
+                        if (current_column + current_bench) % 2 == 0 and student_index < len(all_students):
+                            student = all_students[student_index]
+                            arrangement[capacity][
+                                classroom - details['classrooms_list'][0]
+                            ][current_column][current_bench] = student
+                            classrooms_content[f"classroom_{classroom}"].append(student)
+                            student_index += 1
+                        else:
+                            arrangement[capacity][
+                                classroom - details['classrooms_list'][0]
+                            ][current_column][current_bench] = "EMPTY"
+                            empty_seats.append((capacity, classroom, current_column, current_bench))
                     else:
-                        arrangement[capacity][classroom - details['classrooms_list'][0]][current_column][current_bench] = "EMPTY"
-                        empty_seats.append((capacity, classroom, current_column, current_bench))
+                        # Default strategy for other classrooms
+                        if bench_count % 2 == 0 and student_index < len(all_students):
+                            student = all_students[student_index]
+                            arrangement[capacity][
+                                classroom - details['classrooms_list'][0]
+                            ][current_column][current_bench] = student
+                            classrooms_content[f"classroom_{classroom}"].append(student)
+                            student_index += 1
+                        else:
+                            arrangement[capacity][
+                                classroom - details['classrooms_list'][0]
+                            ][current_column][current_bench] = "EMPTY"
+                            empty_seats.append((capacity, classroom, current_column, current_bench))
+
                     bench_count += 1
                     current_bench += 1
+
                 current_column += 1
 
+    # Fill remaining empty seats
     for seat in empty_seats:
         if student_index < len(all_students):
             capacity, classroom, col, bch = seat
@@ -163,6 +191,20 @@ def seating_arrangement(classes, students_data):
             arrangement[capacity][classroom - classes[capacity]['classrooms_list'][0]][col][bch] = student
             classrooms_content[f"classroom_{classroom}"].append(student)
             student_index += 1
+
+    # Update remaining empty seats list after filling
+    empty_seats = [
+        seat for seat in empty_seats
+        if arrangement[seat[0]][seat[1] - classes[seat[0]]['classrooms_list'][0]][seat[2]][seat[3]] == "EMPTY"
+    ]
+
+    # Check if all students are seated
+    total_students = len(all_students)
+    seated_students = total_students - len(all_students[student_index:])
+    non_seated_students = total_students - seated_students
+
+    if non_seated_students > 0:
+        print(f"Not all students could be seated. Seated: {seated_students}, Non-seated: {non_seated_students}")
 
     return arrangement, classrooms_content
 
@@ -366,18 +408,18 @@ arrangement, classrooms_content = seating_arrangement(classes, students_data)
 
 seating_gui(arrangement, classrooms_content, classes)
 
-# def extract_text_from_pdf(pdf_path):
-#     document = fitz.open(pdf_path)
-#     text = ""
-#     for page_num in range(len(document)):
-#         page = document.load_page(page_num)
+def extract_text_from_pdf(pdf_path):
+    document = fitz.open(pdf_path)
+    text = ""
+    for page_num in range(len(document)):
+        page = document.load_page(page_num)
         
-#         text += page.get_text()
+        text += page.get_text()
     
-#     document.close()
+    document.close()
     
-#     return text
+    return text
 
-# pdf_path = r"C:\Users\hi\Downloads\seating_arrangement.pdf"
-# extracted_text = extract_text_from_pdf(pdf_path)
-# print(extracted_text)
+pdf_path = r"C:\Users\hi\Downloads\seating_arrangement.pdf"
+extracted_text = extract_text_from_pdf(pdf_path)
+print(extracted_text)
