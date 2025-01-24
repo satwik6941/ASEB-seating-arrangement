@@ -206,7 +206,7 @@ def save_as_pdf(arrangement, classes):
 
     for capacity, details in classes.items():
         for classroom_index, classroom in enumerate(details['classrooms_list']):
-            if classroom_index % 2 == 0 and classroom_index != 0:
+            if classroom_index % 2 == 0:
                 pdf.add_page()
 
             # Add classroom title
@@ -215,33 +215,40 @@ def save_as_pdf(arrangement, classes):
             pdf.set_font("Arial", size=12, style='B')
 
             # Calculate table alignment
-            table_width = details['columns'] * 40
+            if capacity == "36_capacity":
+                table_width = details['columns'] * 30  # Adjusted column width for better fit
+                cell_width = 30
+                font_size = 8
+            else:
+                table_width = details['columns'] * 35
+                cell_width = 35
+                font_size = 10
             start_x = (210 - table_width) / 2  
 
             # Add "Date" above Column 1 and "Door Side" above Column 5
             pdf.set_x(start_x)
             for col in range(details['columns']):
                 if col == 0:
-                    pdf.cell(40, 6, txt=f"Date: {today_date}", border=0, align='C')
-                elif col == 4:
-                    pdf.cell(40, 6, txt="Door Side", border=0, align='C')
+                    pdf.cell(cell_width, 6, txt=f"Date: {today_date}", border=0, align='C')
+                elif col == details['columns'] - 1:
+                    pdf.cell(cell_width, 6, txt="Door Side", border=0, align='C')
                 else:
-                    pdf.cell(40, 6, txt="", border=0)
+                    pdf.cell(cell_width, 6, txt="", border=0)
             pdf.ln()
 
             # Add column headers
             pdf.set_x(start_x)
             for col in range(details['columns']):
-                pdf.cell(40, 6, txt=f"Column {col + 1}", border=1, align='C')
+                pdf.cell(cell_width, 6, txt=f"Column {col + 1}", border=1, align='C')
             pdf.ln()
 
             # Add seating arrangement
-            pdf.set_font("Arial", size=10, style='B')
+            pdf.set_font("Arial", size=font_size, style='B')
             for row in range(details['rows']):
                 pdf.set_x(start_x)
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
-                    pdf.cell(40, 12, txt=seat if seat else "EMPTY", border=1, align='C')
+                    pdf.cell(cell_width, 12, txt=seat if seat else "EMPTY", border=1, align='C')
                 pdf.ln()
             pdf.ln()
 
@@ -286,6 +293,7 @@ def seating_gui(arrangement, classrooms_content, classes):
     subtitle_label.grid(row=1, column=0, columnspan=1, pady=20)
 
     classroom_row = 2
+    total_students = 0
     for capacity, details in classes.items():
         for classroom_index, classroom in enumerate(details['classrooms_list']):
             frame = tk.Frame(scrollable_frame, pady=20)
@@ -300,12 +308,15 @@ def seating_gui(arrangement, classrooms_content, classes):
             seating_frame = tk.Frame(frame)
             seating_frame.pack(fill="both", expand=True)
 
-            # Add "Date" above Column 1 and "Door Side" above Column 5
+            # Add "Date" above Column 1 and "Door Side" above the last column
             for col in range(details['columns']):
                 if col == 0:
                     date_label = tk.Label(seating_frame, text=f"Date: {today_date}", font=header_font, borderwidth=1, relief="solid", anchor="center")
                     date_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
-                elif col == 4:
+                elif col == details['columns'] - 1:
+                    door_side_label = tk.Label(seating_frame, text="Door Side", font=header_font, borderwidth=1, relief="solid", anchor="center")
+                    door_side_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
+                elif capacity == "36_capacity" and col == 5:
                     door_side_label = tk.Label(seating_frame, text="Door Side", font=header_font, borderwidth=1, relief="solid", anchor="center")
                     door_side_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
                 else:
@@ -330,12 +341,18 @@ def seating_gui(arrangement, classrooms_content, classes):
                         anchor="center"
                     )
                     seat_label.grid(row=row + 2, column=col, padx=5, pady=5, sticky="nsew")
+                    if seat and seat != "EMPTY":
+                        total_students += 1
 
             # Configure grid weights for centering
             for col in range(details['columns']):
                 seating_frame.columnconfigure(col, weight=1)
             for row in range(details['rows'] + 2):
                 seating_frame.rowconfigure(row, weight=1)
+
+    # Display total count of students seated
+    total_students_label = tk.Label(scrollable_frame, text=f"Total Students Seated: {total_students}", font=subtitle_font, anchor="center")
+    total_students_label.grid(row=classroom_row, column=0, columnspan=1, pady=20)
 
     # Ensure the scrollable frame is properly centered
     scrollable_frame.columnconfigure(0, weight=1)
@@ -349,18 +366,18 @@ arrangement, classrooms_content = seating_arrangement(classes, students_data)
 
 seating_gui(arrangement, classrooms_content, classes)
 
-def extract_text_from_pdf(pdf_path):
-    document = fitz.open(pdf_path)
-    text = ""
-    for page_num in range(len(document)):
-        page = document.load_page(page_num)
+# def extract_text_from_pdf(pdf_path):
+#     document = fitz.open(pdf_path)
+#     text = ""
+#     for page_num in range(len(document)):
+#         page = document.load_page(page_num)
         
-        text += page.get_text()
+#         text += page.get_text()
     
-    document.close()
+#     document.close()
     
-    return text
+#     return text
 
-pdf_path = r"C:\Users\hi\Downloads\seating_arrangement.pdf"
-extracted_text = extract_text_from_pdf(pdf_path)
-print(extracted_text)
+# pdf_path = r"C:\Users\hi\Downloads\seating_arrangement.pdf"
+# extracted_text = extract_text_from_pdf(pdf_path)
+# print(extracted_text)
