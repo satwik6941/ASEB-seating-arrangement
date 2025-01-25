@@ -1,4 +1,4 @@
-# 🐼 Seating_Pandas Branch
+# ASEB-Seating-Arrangement-Software
 
 This is a specialized seating arrangement generator for the college Amrita Vishwa Vidyapeetham, Bengaluru Campus. It utilizes the power of the Pandas library to create seating arrangements by uploading a CSV file to the code.
 
