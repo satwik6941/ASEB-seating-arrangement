@@ -150,7 +150,6 @@ def seating_arrangement(classes, students_data):
 
                 while current_bench < details['rows']:
                     if capacity in ["40_capacity", "36_capacity"]:
-                        # Alternate seating strategy for classrooms with capacity 40 and 36
                         if (current_column + current_bench) % 2 == 0 and student_index < len(all_students):
                             student = all_students[student_index]
                             arrangement[capacity][
@@ -164,7 +163,6 @@ def seating_arrangement(classes, students_data):
                             ][current_column][current_bench] = "EMPTY"
                             empty_seats.append((capacity, classroom, current_column, current_bench))
                     else:
-                        # Default strategy for other classrooms
                         if bench_count % 2 == 0 and student_index < len(all_students):
                             student = all_students[student_index]
                             arrangement[capacity][
@@ -183,7 +181,6 @@ def seating_arrangement(classes, students_data):
 
                 current_column += 1
 
-    # Fill remaining empty seats
     for seat in empty_seats:
         if student_index < len(all_students):
             capacity, classroom, col, bch = seat
@@ -192,13 +189,11 @@ def seating_arrangement(classes, students_data):
             classrooms_content[f"classroom_{classroom}"].append(student)
             student_index += 1
 
-    # Update remaining empty seats list after filling
     empty_seats = [
         seat for seat in empty_seats
         if arrangement[seat[0]][seat[1] - classes[seat[0]]['classrooms_list'][0]][seat[2]][seat[3]] == "EMPTY"
     ]
 
-    # Check if all students are seated
     total_students = len(all_students)
     seated_students = total_students - len(all_students[student_index:])
     non_seated_students = total_students - seated_students
@@ -238,7 +233,6 @@ def save_as_pdf(arrangement, classes):
     today_date = datetime.today().strftime("%d-%m-%Y")
     college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
 
-    # Title page
     pdf.add_page()
     pdf.set_font("Arial", size=14, style='B')
     pdf.cell(200, 10, txt=college_name, ln=True, align='C')
@@ -251,12 +245,10 @@ def save_as_pdf(arrangement, classes):
             if classroom_index % 2 == 0:
                 pdf.add_page()
 
-            # Add classroom title
             pdf.set_font("Arial", size=16, style='B')
             pdf.cell(200, 10, txt=f"Classroom {classroom}", ln=True, align='C')
             pdf.set_font("Arial", size=12, style='B')
 
-            # Calculate table alignment
             if capacity == "36_capacity":
                 table_width = details['columns'] * 30  # Adjusted column width for better fit
                 cell_width = 30
@@ -267,7 +259,6 @@ def save_as_pdf(arrangement, classes):
                 font_size = 10
             start_x = (210 - table_width) / 2  
 
-            # Add "Date" above Column 1 and "Door Side" above Column 5
             pdf.set_x(start_x)
             for col in range(details['columns']):
                 if col == 0:
@@ -278,13 +269,11 @@ def save_as_pdf(arrangement, classes):
                     pdf.cell(cell_width, 6, txt="", border=0)
             pdf.ln()
 
-            # Add column headers
             pdf.set_x(start_x)
             for col in range(details['columns']):
                 pdf.cell(cell_width, 6, txt=f"Column {col + 1}", border=1, align='C')
             pdf.ln()
 
-            # Add seating arrangement
             pdf.set_font("Arial", size=font_size, style='B')
             for row in range(details['rows']):
                 pdf.set_x(start_x)
@@ -321,14 +310,13 @@ def seating_gui(arrangement, classrooms_content, classes):
 
     title_font = ("Arial", 28, "bold")
     subtitle_font = ("Arial", 18, "bold")
-    classroom_font = ("Arial", 30, "bold")  # Larger font for classrooms
+    classroom_font = ("Arial", 30, "bold") 
     header_font = ("Arial", 16, "bold")
-    seat_font = ("Arial", 14, "bold")  # Slightly larger font for seats
+    seat_font = ("Arial", 14, "bold")  
 
     college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
     today_date = datetime.today().strftime("%d-%m-%Y")
 
-    # Title and subtitle (centered)
     title_label = tk.Label(scrollable_frame, text=college_name, font=title_font, anchor="center")
     title_label.grid(row=0, column=0, columnspan=1, pady=10)
     subtitle_label = tk.Label(scrollable_frame, text=f"Seating Arrangement\nDate: {today_date}", font=subtitle_font, anchor="center")
@@ -342,15 +330,12 @@ def seating_gui(arrangement, classrooms_content, classes):
             frame.grid(row=classroom_row, column=0, padx=50, pady=10, sticky="nsew")
             classroom_row += 1
 
-            # Classroom title (centered)
             room_label = tk.Label(frame, text=f"Room No.: {classroom}", font=classroom_font, anchor="center")
             room_label.pack(pady=10)
 
-            # Seating frame
             seating_frame = tk.Frame(frame)
             seating_frame.pack(fill="both", expand=True)
 
-            # Add "Date" above Column 1 and "Door Side" above the last column
             for col in range(details['columns']):
                 if col == 0:
                     date_label = tk.Label(seating_frame, text=f"Date: {today_date}", font=header_font, borderwidth=1, relief="solid", anchor="center")
@@ -365,12 +350,10 @@ def seating_gui(arrangement, classrooms_content, classes):
                     empty_label = tk.Label(seating_frame, text="", font=header_font, anchor="center")
                     empty_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
 
-            # Add column headers (centered)
             for col in range(details['columns']):
                 col_label = tk.Label(seating_frame, text=f"Column {col + 1}", font=header_font, borderwidth=1, relief="solid", anchor="center")
                 col_label.grid(row=1, column=col, padx=5, pady=5, sticky="nsew")
 
-            # Add seating arrangement (centered)
             for row in range(details['rows']):
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
@@ -386,13 +369,11 @@ def seating_gui(arrangement, classrooms_content, classes):
                     if seat and seat != "EMPTY":
                         total_students += 1
 
-            # Configure grid weights for centering
             for col in range(details['columns']):
                 seating_frame.columnconfigure(col, weight=1)
             for row in range(details['rows'] + 2):
                 seating_frame.rowconfigure(row, weight=1)
 
-    # Display total count of students seated
     total_students_label = tk.Label(scrollable_frame, text=f"Total Students Seated: {total_students}", font=subtitle_font, anchor="center")
     total_students_label.grid(row=classroom_row, column=0, columnspan=1, pady=20)
 
@@ -404,22 +385,4 @@ def seating_gui(arrangement, classrooms_content, classes):
 
     root.mainloop()
 
-arrangement, classrooms_content = seating_arrangement(classes, students_data)
-
 seating_gui(arrangement, classrooms_content, classes)
-
-def extract_text_from_pdf(pdf_path):
-    document = fitz.open(pdf_path)
-    text = ""
-    for page_num in range(len(document)):
-        page = document.load_page(page_num)
-        
-        text += page.get_text()
-    
-    document.close()
-    
-    return text
-
-pdf_path = r"C:\Users\hi\Downloads\seating_arrangement.pdf"
-extracted_text = extract_text_from_pdf(pdf_path)
-print(extracted_text)
