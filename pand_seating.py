@@ -282,7 +282,6 @@ def save_as_pdf(arrangement, classes):
                 pdf.ln()
             pdf.ln()
 
-    # Save the PDF
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "seating_arrangement.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
@@ -376,7 +375,6 @@ def seating_gui(arrangement, classrooms_content, classes):
     total_students_label = tk.Label(scrollable_frame, text=f"Total Students Seated: {total_students}", font=subtitle_font, anchor="center")
     total_students_label.grid(row=classroom_row, column=0, columnspan=1, pady=20)
 
-    # Ensure the scrollable frame is properly centered
     scrollable_frame.columnconfigure(0, weight=1)
 
     canvas.pack(side="left", fill="both", expand=True)
