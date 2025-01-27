@@ -5,7 +5,6 @@ from tkinter import ttk
 from fpdf import FPDF
 from datetime import datetime
 import os
-import fitz
 
 classes = { 
     "35_capacity": {"columns": 5, "rows": 7, "benches" : 35, "classrooms_list" : list(range(1,19))},
@@ -386,3 +385,22 @@ def seating_gui(arrangement, classrooms_content, classes):
     root.mainloop()
 
 seating_gui(arrangement, classrooms_content, classes)
+
+def attendance_sheet(classrooms_content, df):
+    attendance_data = {}
+    for index, row in df.iterrows():
+        reg_no = row.get("Registration numbers")
+        name = row.get("Name")
+        if reg_no and name:
+            attendance_data[reg_no] = name
+
+    skip_words = {"Column 1", "Column 2", "Column 3", "Column 4", "Column 5", "Column 6", "Door", "side", "Door Side", "Date"}
+    print("\nAttendance Sheet:")
+    for classroom, students in classrooms_content.items():
+        print(f"\nClassroom {classroom}:")
+        for student in students:
+            if student not in skip_words:
+                name = attendance_data.get(student, "Unknown")
+                print(f"Registration Number: {student}, Name: {name}")
+
+attendance_sheet(classrooms_content, df)
