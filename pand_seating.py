@@ -395,12 +395,61 @@ def attendance_sheet(classrooms_content, df):
             attendance_data[reg_no] = name
 
     skip_words = {"Column 1", "Column 2", "Column 3", "Column 4", "Column 5", "Column 6", "Door", "side", "Door Side", "Date"}
+    attendance_sheet_data = {}
     print("\nAttendance Sheet:")
     for classroom, students in classrooms_content.items():
+        attendance_sheet_data[classroom] = []
         print(f"\nClassroom {classroom}:")
         for student in students:
             if student not in skip_words:
                 name = attendance_data.get(student, "Unknown")
+                attendance_sheet_data[classroom].append((name, student))
                 print(f"Registration Number: {student}, Name: {name}")
+    return attendance_sheet_data
 
-attendance_sheet(classrooms_content, df)
+attendance_data = attendance_sheet(classrooms_content, df)
+
+def attendance_sheet_gui(attendance_data):
+    root = tk.Tk()
+    root.title("Attendance Sheet")
+    root.state("zoomed")
+
+    canvas = tk.Canvas(root)
+    scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
+    canvas.configure(yscrollcommand=scrollbar.set)
+
+    scrollbar.pack(side="right", fill="y")
+    canvas.pack(side="left", fill="both", expand=True)
+
+    scrollable_frame = tk.Frame(canvas)
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+    for classroom, students in attendance_data.items():
+        classroom_frame = tk.Frame(scrollable_frame, padx=10, pady=10, borderwidth=2, relief="groove")
+        classroom_frame.pack(fill="x", pady=10)
+
+        classroom_label = tk.Label(classroom_frame, text=classroom, font=("Helvetica", 14, "bold"))
+        classroom_label.pack(anchor="w")
+
+        tree = ttk.Treeview(classroom_frame, columns=("S.No", "Registration Number", "Name", "Booklet Number", "Signature"), show="headings")
+        tree.heading("S.No", text="S.No")
+        tree.heading("Registration Number", text="Registration Number")
+        tree.heading("Name", text="Name")
+        tree.heading("Booklet Number", text="Booklet Number")
+        tree.heading("Signature", text="Signature")
+        tree.column("S.No", width=50, anchor="center")
+        tree.column("Registration Number", width=150, anchor="center")
+        tree.column("Name", width=300, anchor="w")
+        tree.column("Booklet Number", width=150, anchor="center")
+        tree.column("Signature", width=150, anchor="center")
+        tree.pack(fill="x", pady=10)
+
+        for idx, (name, reg_no) in enumerate(students, start=1):
+            tree.insert("", "end", values=(idx, reg_no, name, "", ""))
+
+    scrollable_frame.update_idletasks()
+    canvas.configure(scrollregion=canvas.bbox("all"))
+
+    root.mainloop()
+
+attendance_sheet_gui(attendance_data)
