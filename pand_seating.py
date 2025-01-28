@@ -410,41 +410,45 @@ attendance_data = attendance_sheet(classrooms_content, df)
 def attendance_sheet_gui(attendance_data):
     root = tk.Tk()
     root.title("Attendance Sheet")
-    root.state("zoomed")
+    root.geometry("1000x600")  # Overall window size
 
+    # Single global scrollbar for the entire GUI
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
     canvas.configure(yscrollcommand=scrollbar.set)
-
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
 
-    scrollable_frame = tk.Frame(canvas)
+    scrollable_frame = ttk.Frame(canvas)
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
 
     for classroom, students in attendance_data.items():
-        classroom_frame = tk.Frame(scrollable_frame, padx=10, pady=10, borderwidth=2, relief="groove")
-        classroom_frame.pack(fill="x", pady=10)
+        # Classroom Label
+        classroom_label = ttk.Label(scrollable_frame, text=classroom, font=("Arial", 16, "bold"), padding=10)
+        classroom_label.pack(anchor="w", padx=10, pady=5)
 
-        classroom_label = tk.Label(classroom_frame, text=classroom, font=("Helvetica", 14, "bold"))
-        classroom_label.pack(anchor="w")
+        # Create Table (Treeview) without a dedicated scrollbar
+        columns = ("S.No", "Register No.", "Name", "Booklet No.", "Signature")
+        tree = ttk.Treeview(scrollable_frame, columns=columns, show="headings")
 
-        tree = ttk.Treeview(classroom_frame, columns=("S.No", "Registration Number", "Name", "Booklet Number", "Signature"), show="headings")
-        tree.heading("S.No", text="S.No")
-        tree.heading("Registration Number", text="Registration Number")
-        tree.heading("Name", text="Name")
-        tree.heading("Booklet Number", text="Booklet Number")
-        tree.heading("Signature", text="Signature")
+        tree.heading("S.No", text="Sl No.", anchor="center")
+        tree.heading("Register No.", text="Register No.", anchor="center")
+        tree.heading("Name", text="Name", anchor="center")
+        tree.heading("Booklet No.", text="Booklet No.", anchor="center")
+        tree.heading("Signature", text="Signature", anchor="center")
+
         tree.column("S.No", width=50, anchor="center")
-        tree.column("Registration Number", width=150, anchor="center")
+        tree.column("Register No.", width=150, anchor="center")
         tree.column("Name", width=300, anchor="w")
-        tree.column("Booklet Number", width=150, anchor="center")
+        tree.column("Booklet No.", width=150, anchor="center")
         tree.column("Signature", width=150, anchor="center")
-        tree.pack(fill="x", pady=10)
 
         for idx, (name, reg_no) in enumerate(students, start=1):
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
 
+        tree.pack(fill="x", padx=10, pady=5)
+
+    # Make scrollregion cover everything
     scrollable_frame.update_idletasks()
     canvas.configure(scrollregion=canvas.bbox("all"))
 
