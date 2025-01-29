@@ -274,7 +274,7 @@ def save_as_pdf(arrangement, classes):
             pdf.ln()
 
             pdf.set_font("Arial", size=font_size, style='B')
-            for row in range(details['rows']):
+            for row in range(details['rows']): 
                 pdf.set_x(start_x)
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
@@ -407,36 +407,40 @@ def attendance_sheet(classrooms_content, df):
 
 attendance_data = attendance_sheet(classrooms_content, df)
 
-def pdf_attendence_sheet(attendance_data):
+def pdf_attendance_sheet(attendance_data):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=12)
 
     for classroom, students in attendance_data.items():
         pdf.add_page()
-        pdf.cell(200, 10, txt=f"Classroom: {classroom}", ln=True, align='C')
-        pdf.ln(5)
-        pdf.cell(40, 10, txt="S.No", border=1, align='C')
-        pdf.cell(60, 10, txt="Register No.", border=1, align='C')
-        pdf.cell(60, 10, txt="Name", border=1, align='C')
-        pdf.cell(30, 10, txt="Signature", border=1, ln=True, align='C')
+        pdf.set_font("Arial", size=22, style='B')
+        pdf.cell(200, 10, txt=classroom.encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+        pdf.ln(10)
 
+        pdf.set_font("Arial", size=18, style='B')
+        column_widths = [20, 50, 70, 40, 40]
+        headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
+        for i, header in enumerate(headers):
+            pdf.cell(column_widths[i], 10, txt=header.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+        pdf.ln()
+
+        pdf.set_font("Arial", size=14)  # Adjusted font size for row data
         for idx, (name, reg_no) in enumerate(students, start=1):
-            pdf.cell(40, 10, txt=str(idx), border=1, align='C')
-            pdf.cell(60, 10, txt=str(reg_no), border=1, align='C')
-            pdf.cell(60, 10, txt=name, border=1, align='C')
-            pdf.cell(30, 10, txt="", border=1, ln=True, align='C')
+            pdf.cell(column_widths[0], 10, txt=str(idx).encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[1], 10, txt=reg_no.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[3], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[4], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, ln=True, align='C')
 
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
     pdf.output(downloads_path)
-    print(f"Attendance PDF saved to {downloads_path}")
+    print(f"PDF saved to {downloads_path}")
 
 def attendance_sheet_gui(attendance_data):
     root = tk.Tk()
     root.title("Attendance Sheet")
-    root.geometry("1000x600")  # Overall window size
+    root.geometry("1000x600") 
 
-    # Single global scrollbar for the entire GUI
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
     canvas.configure(yscrollcommand=scrollbar.set)
@@ -446,21 +450,19 @@ def attendance_sheet_gui(attendance_data):
     scrollable_frame = ttk.Frame(canvas)
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
 
-    # Add a "Save as PDF" button
-    save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendence_sheet(attendance_data))
+    save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data))
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
-    title_font = ("Arial", 28, "bold")
-    subtitle_font = ("Arial", 18, "bold")
-    header_font = ("Arial", 16, "bold")
-    cell_font = ("Arial", 14, "bold")
+    title_font = ("Arial", 32, "bold")
+    subtitle_font = ("Arial", 22, "bold")
+    header_font = ("Arial", 20, "bold")
+    cell_font = ("Arial", 14, "bold")  # Adjusted font size for cell data
 
     for classroom, students in attendance_data.items():
         # Classroom Label
         classroom_label = ttk.Label(scrollable_frame, text=classroom, font=title_font, padding=10)
-        classroom_label.pack(anchor="w", padx=10, pady=5)
+        classroom_label.pack(anchor="center", padx=10, pady=5)
 
-        # Create Table (Treeview) without a dedicated scrollbar
         columns = ("S.No", "Register No.", "Name", "Booklet No.", "Signature")
         tree = ttk.Treeview(scrollable_frame, columns=columns, show="headings")
 
@@ -487,34 +489,3 @@ def attendance_sheet_gui(attendance_data):
     root.mainloop()
 
 attendance_sheet_gui(attendance_data)
-
-def attendance_sheet_pdf(attendance_data):
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=12)
-
-    for classroom, students in attendance_data.items():
-        pdf.add_page()
-        pdf.set_font("Arial", size=16, style='B')
-        pdf.cell(200, 10, txt=f"Classroom: {classroom}", ln=True, align='C')
-        pdf.ln(5)
-
-        pdf.set_font("Arial", size=12, style='B')
-        column_widths = [20, 50, 60, 40, 30]
-        headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
-        for i, header in enumerate(headers):
-            pdf.cell(column_widths[i], 10, txt=header, border=1, align='C')
-        pdf.ln()
-
-        for idx, (name, reg_no) in enumerate(students, start=1):
-            pdf.cell(column_widths[0], 10, str(idx), border=1, align='C')
-            pdf.cell(column_widths[1], 10, reg_no, border=1, align='C')
-            pdf.cell(column_widths[2], 10, name, border=1, align='C')
-            pdf.cell(column_widths[3], 10, "", border=1, align='C')
-            pdf.cell(column_widths[4], 10, "", border=1, ln=True, align='C')
-
-    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
-    pdf.output(downloads_path)
-    print(f"Attendance PDF saved to {downloads_path}")
-
-attendance_sheet_pdf(attendance_data)
