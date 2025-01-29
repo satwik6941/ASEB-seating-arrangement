@@ -418,17 +418,23 @@ def pdf_attendance_sheet(attendance_data):
         pdf.ln(10)
 
         pdf.set_font("Arial", size=18, style='B')
-        column_widths = [20, 50, 70, 40, 40]
+        column_widths = [15, 45, 70, 30, 40]  # Adjusted column widths
         headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
         for i, header in enumerate(headers):
             pdf.cell(column_widths[i], 10, txt=header.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
         pdf.ln()
 
-        pdf.set_font("Arial", size=14)  # Adjusted font size for row data
+        pdf.set_font("Arial", size=12)  # Adjusted font size for "Name" column
         for idx, (name, reg_no) in enumerate(students, start=1):
             pdf.cell(column_widths[0], 10, txt=str(idx).encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
             pdf.cell(column_widths[1], 10, txt=reg_no.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-            pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+            if len(name) > 30:  # Check if name is too long
+                pdf.set_font("Arial", size=10)  # Smaller font size for long names
+                pdf.multi_cell(column_widths[2], 5, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+                pdf.set_xy(pdf.get_x() + column_widths[2], pdf.get_y() - 10)  # Move to the next cell in the same row
+                pdf.set_font("Arial", size=12)  # Reset font size
+            else:
+                pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
             pdf.cell(column_widths[3], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
             pdf.cell(column_widths[4], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, ln=True, align='C')
 
@@ -456,7 +462,7 @@ def attendance_sheet_gui(attendance_data):
     title_font = ("Arial", 32, "bold")
     subtitle_font = ("Arial", 22, "bold")
     header_font = ("Arial", 20, "bold")
-    cell_font = ("Arial", 14, "bold")  # Adjusted font size for cell data
+    cell_font = ("Arial", 12, "bold")  # Adjusted font size for "Name" column
 
     for classroom, students in attendance_data.items():
         # Classroom Label
@@ -472,13 +478,15 @@ def attendance_sheet_gui(attendance_data):
         tree.heading("Booklet No.", text="Booklet No.", anchor="center")
         tree.heading("Signature", text="Signature", anchor="center")
 
-        tree.column("S.No", width=50, anchor="center")
-        tree.column("Register No.", width=150, anchor="center")
-        tree.column("Name", width=300, anchor="w")
-        tree.column("Booklet No.", width=150, anchor="center")
-        tree.column("Signature", width=150, anchor="center")
+        tree.column("S.No", width=40, anchor="center")
+        tree.column("Register No.", width=120, anchor="center")
+        tree.column("Name", width=250, anchor="w")
+        tree.column("Booklet No.", width=100, anchor="center")
+        tree.column("Signature", width=120, anchor="center")
 
         for idx, (name, reg_no) in enumerate(students, start=1):
+            if len(name) > 30:  # Check if name is too long
+                name = '\n'.join([name[i:i+30] for i in range(0, len(name), 30)])  # Split long names into multiple lines
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
 
         tree.pack(fill="x", padx=10, pady=5)
