@@ -7,9 +7,9 @@ from datetime import datetime
 import os
 
 classes = { 
-    "35_capacity": {"columns": 5, "rows": 7, "benches" : 35, "classrooms_list" : list(range(1,19))},
-    "40_capacity": {"columns": 5, "rows": 8, "benches" : 40, "classrooms_list" : list(range(19,38))},
-    "36_capacity": {"columns": 6, "rows": 6, "benches" : 36, "classrooms_list" : list(range(38,57))},
+    "35_capacity": {"columns": 5, "rows": 7, "benches" : 35, "classrooms_list" : ['A301', 'A302', 'A303', 'A304', 'A305', 'A308', 'A401', 'A402', 'A403', 'A404', 'A405', 'A408', 'E205', 'E206', 'E207', 'E208', 'E209', 'E210', 'C104', 'C203', 'C205', 'C302', 'C303', 'C304', 'C305', 'C306', 'C402', 'C403', 'C404', 'C405', 'C406', 'C408']},
+    "40_capacity": {"columns": 5, "rows": 8, "benches" : 40, "classrooms_list" : ['A306', 'A406', 'E203A', 'E203B', 'A108', 'A107',  'B104', 'B106', 'B108', 'C201', 'C206', 'C208', 'C211', 'C212', 'C301', 'C307', 'C401', 'C407']},
+    "36_capacity": {"columns": 5, "rows": 6, "benches" : 30, "classrooms_list" : ['A106', 'B107']},
 }
 columns = 5
 benches = 7
@@ -140,40 +140,30 @@ def seating_arrangement(classes, students_data):
         ]
 
     for capacity, details in classes.items():
-        for classroom in details['classrooms_list']:
+        for classroom_index, classroom_name in enumerate(details['classrooms_list']):
+            classrooms_content[f"classroom_{classroom_name}"] = []
             current_column = 0
-            classrooms_content[f"classroom_{classroom}"] = []
-
             while current_column < details['columns']:
                 current_bench = 0
-
                 while current_bench < details['rows']:
                     if capacity in ["40_capacity", "36_capacity"]:
                         if (current_column + current_bench) % 2 == 0 and student_index < len(all_students):
                             student = all_students[student_index]
-                            arrangement[capacity][
-                                classroom - details['classrooms_list'][0]
-                            ][current_column][current_bench] = student
-                            classrooms_content[f"classroom_{classroom}"].append(student)
+                            arrangement[capacity][classroom_index][current_column][current_bench] = student
+                            classrooms_content[f"classroom_{classroom_name}"].append(student)
                             student_index += 1
                         else:
-                            arrangement[capacity][
-                                classroom - details['classrooms_list'][0]
-                            ][current_column][current_bench] = "EMPTY"
-                            empty_seats.append((capacity, classroom, current_column, current_bench))
+                            arrangement[capacity][classroom_index][current_column][current_bench] = "EMPTY"
+                            empty_seats.append((capacity, classroom_index, current_column, current_bench))
                     else:
                         if bench_count % 2 == 0 and student_index < len(all_students):
                             student = all_students[student_index]
-                            arrangement[capacity][
-                                classroom - details['classrooms_list'][0]
-                            ][current_column][current_bench] = student
-                            classrooms_content[f"classroom_{classroom}"].append(student)
+                            arrangement[capacity][classroom_index][current_column][current_bench] = student
+                            classrooms_content[f"classroom_{classroom_name}"].append(student)
                             student_index += 1
                         else:
-                            arrangement[capacity][
-                                classroom - details['classrooms_list'][0]
-                            ][current_column][current_bench] = "EMPTY"
-                            empty_seats.append((capacity, classroom, current_column, current_bench))
+                            arrangement[capacity][classroom_index][current_column][current_bench] = "EMPTY"
+                            empty_seats.append((capacity, classroom_index, current_column, current_bench))
 
                     bench_count += 1
                     current_bench += 1
@@ -182,15 +172,16 @@ def seating_arrangement(classes, students_data):
 
     for seat in empty_seats:
         if student_index < len(all_students):
-            capacity, classroom, col, bch = seat
+            capacity, classroom_index, col, bch = seat
             student = all_students[student_index]
-            arrangement[capacity][classroom - classes[capacity]['classrooms_list'][0]][col][bch] = student
-            classrooms_content[f"classroom_{classroom}"].append(student)
+            arrangement[capacity][classroom_index][col][bch] = student
+            classroom_name = classes[capacity]['classrooms_list'][classroom_index]
+            classrooms_content[f"classroom_{classroom_name}"].append(student)
             student_index += 1
 
     empty_seats = [
         seat for seat in empty_seats
-        if arrangement[seat[0]][seat[1] - classes[seat[0]]['classrooms_list'][0]][seat[2]][seat[3]] == "EMPTY"
+        if arrangement[seat[0]][seat[1]][seat[2]][seat[3]] == "EMPTY"
     ]
 
     total_students = len(all_students)
@@ -249,7 +240,7 @@ def save_as_pdf(arrangement, classes):
             pdf.set_font("Arial", size=12, style='B')
 
             if capacity == "36_capacity":
-                table_width = details['columns'] * 30  # Adjusted column width for better fit
+                table_width = details['columns'] * 30  
                 cell_width = 30
                 font_size = 8
             else:
@@ -417,22 +408,26 @@ def pdf_attendance_sheet(attendance_data):
         pdf.cell(200, 10, txt=classroom.encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
         pdf.ln(10)
 
-        pdf.set_font("Arial", size=18, style='B')
-        column_widths = [15, 45, 70, 30, 40]  # Adjusted column widths
+        pdf.set_font("Arial", size=14, style='B')
+        column_widths = [15, 45, 70, 30, 40] 
+        table_width = sum(column_widths)  # Calculate total table width
+        start_x = (210 - table_width) / 2  # Center the table
+
+        pdf.set_x(start_x)
         headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
         for i, header in enumerate(headers):
             pdf.cell(column_widths[i], 10, txt=header.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
         pdf.ln()
 
-        pdf.set_font("Arial", size=12)  # Adjusted font size for "Name" column
+        pdf.set_font("Arial", size=12)  
         for idx, (name, reg_no) in enumerate(students, start=1):
+            pdf.set_x(start_x)
             pdf.cell(column_widths[0], 10, txt=str(idx).encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
             pdf.cell(column_widths[1], 10, txt=reg_no.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-            if len(name) > 30:  # Check if name is too long
-                pdf.set_font("Arial", size=10)  # Smaller font size for long names
-                pdf.multi_cell(column_widths[2], 5, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-                pdf.set_xy(pdf.get_x() + column_widths[2], pdf.get_y() - 10)  # Move to the next cell in the same row
-                pdf.set_font("Arial", size=12)  # Reset font size
+            if len(name) > 30:  
+                pdf.set_font("Arial", size=8)  
+                pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+                pdf.set_font("Arial", size=12) 
             else:
                 pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
             pdf.cell(column_widths[3], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
@@ -445,7 +440,7 @@ def pdf_attendance_sheet(attendance_data):
 def attendance_sheet_gui(attendance_data):
     root = tk.Tk()
     root.title("Attendance Sheet")
-    root.geometry("1000x600") 
+    root.state("zoomed")  # Open in full screen
 
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
@@ -462,7 +457,7 @@ def attendance_sheet_gui(attendance_data):
     title_font = ("Arial", 32, "bold")
     subtitle_font = ("Arial", 22, "bold")
     header_font = ("Arial", 20, "bold")
-    cell_font = ("Arial", 12, "bold")  # Adjusted font size for "Name" column
+    cell_font = ("Arial", 12, "bold")  
 
     for classroom, students in attendance_data.items():
         # Classroom Label
@@ -485,8 +480,8 @@ def attendance_sheet_gui(attendance_data):
         tree.column("Signature", width=120, anchor="center")
 
         for idx, (name, reg_no) in enumerate(students, start=1):
-            if len(name) > 30:  # Check if name is too long
-                name = '\n'.join([name[i:i+30] for i in range(0, len(name), 30)])  # Split long names into multiple lines
+            if len(name) > 30: 
+                name = '\n'.join([name[i:i+30] for i in range(0, len(name), 30)])  
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
 
         tree.pack(fill="x", padx=10, pady=5)
