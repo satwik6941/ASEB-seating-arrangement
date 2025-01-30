@@ -405,33 +405,64 @@ def pdf_attendance_sheet(attendance_data):
     for classroom, students in attendance_data.items():
         pdf.add_page()
         pdf.set_font("Arial", size=22, style='B')
-        pdf.cell(200, 10, txt=classroom.encode('latin-1', 'replace').decode('latin-1'), ln=True, align='C')
+        pdf.cell(200, 10, txt=classroom.encode('latin-1','replace').decode('latin-1'), ln=True, align='C')
         pdf.ln(10)
 
         pdf.set_font("Arial", size=14, style='B')
-        column_widths = [15, 45, 70, 30, 40] 
-        table_width = sum(column_widths)  # Calculate total table width
-        start_x = (210 - table_width) / 2  # Center the table
+        column_widths = [15, 45, 70, 30, 40]
+        table_width = sum(column_widths)
+        start_x = (210 - table_width) / 2
 
         pdf.set_x(start_x)
         headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
         for i, header in enumerate(headers):
-            pdf.cell(column_widths[i], 10, txt=header.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[i], 10, txt=header.encode('latin-1','replace').decode('latin-1'), border=1, align='C')
         pdf.ln()
 
-        pdf.set_font("Arial", size=12)  
+        pdf.set_font("Arial", size=12)
         for idx, (name, reg_no) in enumerate(students, start=1):
             pdf.set_x(start_x)
-            pdf.cell(column_widths[0], 10, txt=str(idx).encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-            pdf.cell(column_widths[1], 10, txt=reg_no.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-            if len(name) > 30:  
-                pdf.set_font("Arial", size=8)  
-                pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-                pdf.set_font("Arial", size=12) 
+            pdf.cell(column_widths[0], 10, txt=str(idx).encode('latin-1','replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[1], 10, txt=reg_no.encode('latin-1','replace').decode('latin-1'), border=1, align='C')
+            if len(name) > 30:
+                pdf.set_font("Arial", size=8)
+                pdf.cell(column_widths[2], 10, txt=name.encode('latin-1','replace').decode('latin-1'), border=1, align='C')
+                pdf.set_font("Arial", size=12)
             else:
-                pdf.cell(column_widths[2], 10, txt=name.encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-            pdf.cell(column_widths[3], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, align='C')
-            pdf.cell(column_widths[4], 10, txt="".encode('latin-1', 'replace').decode('latin-1'), border=1, ln=True, align='C')
+                pdf.cell(column_widths[2], 10, txt=name.encode('latin-1','replace').decode('latin-1'), border=1, align='C')
+            pdf.cell(column_widths[3], 10, txt="", border=1, align='C')
+            pdf.cell(column_widths[4], 10, txt="", border=1, ln=True, align='C')
+
+        pdf.ln(10)
+        pdf.set_font("Arial", size=12, style='B')
+
+        # Draw the boxes in two rows each, across three columns
+        box_width = 60
+        box_height = 20
+
+        pdf.set_x(start_x)
+        pdf.cell(box_width, box_height, txt="Total No of\nStudents Present:", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="Register Nos.\n(Malpractice):", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="Room\nSuperintendent:", border=1, align='C')
+        pdf.ln(box_height)
+
+        pdf.set_x(start_x)
+        pdf.cell(box_width, box_height, txt="", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="", border=1, align='C')
+        pdf.ln(box_height)
+
+        pdf.set_x(start_x)
+        pdf.cell(box_width, box_height, txt="Total No of\nStudents Absent:", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="Register Nos.\n(absentees):", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="Deputy\nController of Exams:", border=1, align='C')
+        pdf.ln(box_height)
+
+        pdf.set_x(start_x)
+        pdf.cell(box_width, box_height, txt="", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="", border=1, align='C')
+        pdf.cell(box_width, box_height, txt="", border=1, align='C')
+        pdf.ln(box_height)
 
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
     pdf.output(downloads_path)
@@ -440,7 +471,7 @@ def pdf_attendance_sheet(attendance_data):
 def attendance_sheet_gui(attendance_data):
     root = tk.Tk()
     root.title("Attendance Sheet")
-    root.state("zoomed")  # Open in full screen
+    root.state("zoomed")
 
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
@@ -457,10 +488,9 @@ def attendance_sheet_gui(attendance_data):
     title_font = ("Arial", 32, "bold")
     subtitle_font = ("Arial", 22, "bold")
     header_font = ("Arial", 20, "bold")
-    cell_font = ("Arial", 12, "bold")  
+    cell_font = ("Arial", 12, "bold")
 
     for classroom, students in attendance_data.items():
-        # Classroom Label
         classroom_label = ttk.Label(scrollable_frame, text=classroom, font=title_font, padding=10)
         classroom_label.pack(anchor="center", padx=10, pady=5)
 
@@ -480,11 +510,35 @@ def attendance_sheet_gui(attendance_data):
         tree.column("Signature", width=120, anchor="center")
 
         for idx, (name, reg_no) in enumerate(students, start=1):
-            if len(name) > 30: 
-                name = '\n'.join([name[i:i+30] for i in range(0, len(name), 30)])  
+            if len(name) > 30:
+                name = '\n'.join([name[i:i+30] for i in range(0, len(name), 30)])
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
 
         tree.pack(fill="x", padx=10, pady=5)
+
+        layout_frame = ttk.Frame(scrollable_frame)
+        layout_frame.pack(fill="x", padx=10, pady=5)
+
+        box_frame_1 = ttk.Frame(layout_frame, borderwidth=1, relief="solid")
+        box_frame_1.grid(row=0, column=0, padx=5, pady=5)
+        ttk.Label(box_frame_1, text="Total No of\nStudents Present:", font=cell_font).pack(anchor="w")
+        ttk.Entry(box_frame_1, width=20).pack(fill="x", padx=5)
+        ttk.Label(box_frame_1, text="Total No of\nStudents Absent:", font=cell_font).pack(anchor="w")
+        ttk.Entry(box_frame_1, width=20).pack(fill="x", padx=5)
+
+        box_frame_2 = ttk.Frame(layout_frame, borderwidth=1, relief="solid")
+        box_frame_2.grid(row=0, column=1, padx=5, pady=5)
+        ttk.Label(box_frame_2, text="Register Nos.\n(Malpractice):", font=cell_font).pack(anchor="w")
+        ttk.Entry(box_frame_2, width=20).pack(fill="x", padx=5)
+        ttk.Label(box_frame_2, text="Register Nos.\n(absentees):", font=cell_font).pack(anchor="w")
+        ttk.Entry(box_frame_2, width=20).pack(fill="x", padx=5)
+
+        box_frame_3 = ttk.Frame(layout_frame, borderwidth=1, relief="solid")
+        box_frame_3.grid(row=0, column=2, padx=5, pady=5)
+        ttk.Label(box_frame_3, text="Room Superintendent", font=cell_font).pack(anchor="w")
+        ttk.Entry(box_frame_3, width=20).pack(fill="x", padx=5)
+        ttk.Label(box_frame_3, text="Deputy Controller of Exams", font=cell_font).pack(anchor="w")
+        ttk.Entry(box_frame_3, width=20).pack(fill="x", padx=5)
 
     scrollable_frame.update_idletasks()
     canvas.configure(scrollregion=canvas.bbox("all"))
