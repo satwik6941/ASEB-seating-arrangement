@@ -7,9 +7,9 @@ from datetime import datetime
 import os
 
 classes = { 
-    "35_capacity": {"columns": 5, "rows": 7, "benches" : 35, "classrooms_list" : ['A301', 'A302', 'A303', 'A304', 'A305', 'A308', 'A401', 'A402', 'A403', 'A404', 'A405', 'A408', 'E205', 'E206', 'E207', 'E208', 'E209', 'E210', 'C104', 'C203', 'C205', 'C302', 'C303', 'C304', 'C305', 'C306', 'C402', 'C403', 'C404', 'C405', 'C406', 'C408']},
+    "35_capacity": {"columns": 5, "rows": 7, "benches" : 35, "classrooms_list" : ['A301', 'A302', 'A303', 'A304', 'A305', 'A308', 'A401', 'A402', 'A403', 'A404', 'A405', 'A408', 'C104', 'C203', 'C205', 'C302', 'C303', 'C304', 'C305', 'C306', 'C402', 'C403', 'C404', 'C405', 'C406', 'C408']},
     "40_capacity": {"columns": 5, "rows": 8, "benches" : 40, "classrooms_list" : ['A306', 'A406', 'E203A', 'E203B', 'A108', 'A107',  'B104', 'B106', 'B108', 'C201', 'C206', 'C208', 'C211', 'C212', 'C301', 'C307', 'C401', 'C407']},
-    "36_capacity": {"columns": 5, "rows": 6, "benches" : 30, "classrooms_list" : ['A106', 'B107']},
+    "36_capacity": {"columns": 6, "rows": 6, "benches" : 36, "classrooms_list" : ['A106', 'E205', 'E206', 'E207', 'E208', 'E209', 'E210']},
 }
 columns = 5
 benches = 7
@@ -206,11 +206,6 @@ def classroom_data(classrooms_content):
                 class_counts[key] += 1
             else:
                 class_counts[key] = 1
-        print(f"{classroom}:")
-        print(f"  Number of students: {num_students}")
-        for key, count in class_counts.items():
-            print(f"  {key}: {count} students")
-        print(f"  Roll numbers: {', '.join(students)}")
 
 arrangement, classrooms_content = seating_arrangement(classes, students_data)
 classroom_data(classrooms_content)
@@ -388,12 +383,10 @@ def attendance_sheet(classrooms_content, df):
     print("\nAttendance Sheet:")
     for classroom, students in classrooms_content.items():
         attendance_sheet_data[classroom] = []
-        print(f"\nClassroom {classroom}:")
         for student in students:
             if student not in skip_words:
                 name = attendance_data.get(student, "Unknown")
                 attendance_sheet_data[classroom].append((name, student))
-                print(f"Registration Number: {student}, Name: {name}")
     return attendance_sheet_data
 
 attendance_data = attendance_sheet(classrooms_content, df)
@@ -545,3 +538,32 @@ def attendance_sheet_gui(attendance_data):
     root.mainloop()
 
 attendance_sheet_gui(attendance_data)
+
+def print_classroom_details(classrooms_content, first_year_students, second_year_students, third_year_students):
+    for classroom, students in classrooms_content.items():
+        print(f"\nClassroom {classroom}:")
+        class_counts = {}
+        for student in students:
+            class_name = student[8:11]
+            if class_name in class_counts:
+                class_counts[class_name].append(student)
+            else:
+                class_counts[class_name] = [student]
+        
+        for class_name, student_list in class_counts.items():
+            first_year_list = [s for s in student_list if s in first_year_students]
+            second_year_list = [s for s in student_list if s in second_year_students]
+            third_year_list = [s for s in student_list if s in third_year_students]
+
+            print(f"  {class_name}: {len(student_list)} students")
+            if first_year_list:
+                print(f"    1st Year: {len(first_year_list)} students")
+                print(f"      Roll numbers: {first_year_list[0]} to {first_year_list[-1]}")
+            if second_year_list:
+                print(f"    2nd Year: {len(second_year_list)} students")
+                print(f"      Roll numbers: {second_year_list[0]} to {second_year_list[-1]}")
+            if third_year_list:
+                print(f"    3rd Year: {len(third_year_list)} students")
+                print(f"      Roll numbers: {third_year_list[0]} to {third_year_list[-1]}")
+
+print_classroom_details(classrooms_content, first_year_students, second_year_students, third_year_students)
