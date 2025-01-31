@@ -434,31 +434,30 @@ def pdf_attendance_sheet(attendance_data):
             pdf.cell(column_widths[4], 10, txt="", border=1, ln=True, align='C')
 
         pdf.ln(10)
-        pdf.set_font("Arial", size=12, style='B')
+        pdf.set_font("Arial", size=10, style='B')
 
-        # Draw the boxes in two rows each, across three columns
-        box_width = 60
-        box_height = 20
+        box_width = 50
+        box_height = 15
 
-        pdf.set_x(start_x)
+        pdf.set_x(start_x + 30) 
         pdf.cell(box_width, box_height, txt="Total No of\nStudents Present:", border=1, align='C')
         pdf.cell(box_width, box_height, txt="Register Nos.\n(Malpractice):", border=1, align='C')
         pdf.cell(box_width, box_height, txt="Room\nSuperintendent:", border=1, align='C')
         pdf.ln(box_height)
 
-        pdf.set_x(start_x)
+        pdf.set_x(start_x + 30)
         pdf.cell(box_width, box_height, txt="", border=1, align='C')
         pdf.cell(box_width, box_height, txt="", border=1, align='C')
         pdf.cell(box_width, box_height, txt="", border=1, align='C')
         pdf.ln(box_height)
 
-        pdf.set_x(start_x)
+        pdf.set_x(start_x + 30)
         pdf.cell(box_width, box_height, txt="Total No of\nStudents Absent:", border=1, align='C')
         pdf.cell(box_width, box_height, txt="Register Nos.\n(absentees):", border=1, align='C')
         pdf.cell(box_width, box_height, txt="Deputy\nController of Exams:", border=1, align='C')
         pdf.ln(box_height)
 
-        pdf.set_x(start_x)
+        pdf.set_x(start_x + 30)
         pdf.cell(box_width, box_height, txt="", border=1, align='C')
         pdf.cell(box_width, box_height, txt="", border=1, align='C')
         pdf.cell(box_width, box_height, txt="", border=1, align='C')
