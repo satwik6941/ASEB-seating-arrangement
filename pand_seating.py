@@ -539,31 +539,113 @@ def attendance_sheet_gui(attendance_data):
 
 attendance_sheet_gui(attendance_data)
 
-def print_classroom_details(classrooms_content, first_year_students, second_year_students, third_year_students):
-    for classroom, students in classrooms_content.items():
-        print(f"\nClassroom {classroom}:")
-        class_counts = {}
-        for student in students:
-            class_name = student[8:11]
-            if class_name in class_counts:
-                class_counts[class_name].append(student)
-            else:
-                class_counts[class_name] = [student]
-        
-        for class_name, student_list in class_counts.items():
-            first_year_list = [s for s in student_list if s in first_year_students]
-            second_year_list = [s for s in student_list if s in second_year_students]
-            third_year_list = [s for s in student_list if s in third_year_students]
+def print_classroom_details(classrooms_content, student_year_lists):
+    course_year_to_classrooms = {}
+    for course_year, students_list in student_year_lists.items():
+        for classroom, studs in classrooms_content.items():
+            intersection = sorted(set(studs) & set(students_list))
+            if intersection:
+                if course_year not in course_year_to_classrooms:
+                    course_year_to_classrooms[course_year] = {}
+                course_year_to_classrooms[course_year][classroom] = intersection
 
-            print(f"  {class_name}: {len(student_list)} students")
-            if first_year_list:
-                print(f"    1st Year: {len(first_year_list)} students")
-                print(f"      Roll numbers: {first_year_list[0]} to {first_year_list[-1]}")
-            if second_year_list:
-                print(f"    2nd Year: {len(second_year_list)} students")
-                print(f"      Roll numbers: {second_year_list[0]} to {second_year_list[-1]}")
-            if third_year_list:
-                print(f"    3rd Year: {len(third_year_list)} students")
-                print(f"      Roll numbers: {third_year_list[0]} to {third_year_list[-1]}")
+    for course_year, classroom_dict in course_year_to_classrooms.items():
+        print(f"\n{course_year}:")
+        for classroom_name, studs in classroom_dict.items():
+            print(f"  Classroom {classroom_name}: {len(studs)} students")
+            print(f"    Roll numbers: {studs[0]} to {studs[-1]}")
 
-print_classroom_details(classrooms_content, first_year_students, second_year_students, third_year_students)
+def pdf_classroom_details(course_year_to_classrooms):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    pdf.set_font("Arial", size=12, style='B')
+    pdf.add_page()
+    pdf.cell(200, 10, txt="Classroom Details", ln=True, align='C')
+
+    column_headers = ["Room No", "University Registration Number", "Branch", "Total"]
+    column_widths = [50, 80, 40, 20]
+    start_x = (210 - sum(column_widths)) / 2
+
+    current_course = None
+    for course_year, classroom_dict in course_year_to_classrooms.items():
+        course_display = f"{course_year.split('_')[0]} - {course_year.split('_')[2]}"
+        if course_display != current_course:
+            pdf.ln(10)
+            pdf.set_font("Arial", size=10, style='B')
+            pdf.cell(200, 10, txt=course_display, ln=True, align='C')
+            pdf.set_x(start_x)
+            for i, header in enumerate(column_headers):
+                pdf.cell(column_widths[i], 8, header, border=1, align='C')
+            pdf.ln()
+            current_course = course_display
+
+        for classroom_name, studs in classroom_dict.items():
+            pdf.set_x(start_x)
+            roll_range = f"{studs[0]} to {studs[-1]}" if len(studs) > 1 else studs[0]
+            branch = studs[0][8:11] if studs else ""
+            total_count = len(studs)
+            row_values = [classroom_name, roll_range, branch, str(total_count)]
+            for i, val in enumerate(row_values):
+                pdf.cell(column_widths[i], 8, txt=val, border=1, align='C')
+            pdf.ln()
+
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "classroom_details.pdf")
+    pdf.output(downloads_path)
+    print(f"PDF saved to {downloads_path}")
+
+def display_classroom_details_gui(classrooms_content, student_year_lists):
+    course_year_to_classrooms = {}
+    for course_year, students_list in student_year_lists.items():
+        for classroom, studs in classrooms_content.items():
+            intersection = sorted(set(studs) & set(students_list))
+            if intersection:
+                if course_year not in course_year_to_classrooms:
+                    course_year_to_classrooms[course_year] = {}
+                course_year_to_classrooms[course_year][classroom] = intersection
+
+    root = tk.Tk()
+    root.title("Classroom Details")
+    root.state("zoomed")
+
+    style = ttk.Style()
+    style.theme_use("default")
+    style.configure("Treeview", rowheight=25, highlightthickness=1, bd=1, relief="solid", font=("Arial", 10))
+    style.configure("Treeview.Heading", font=("Arial", 12, "bold"))
+    style.configure("CourseYear.Treeview", font=("Arial", 12, "bold"), background="lightblue")
+
+    tree = ttk.Treeview(root, columns=("room_no", "reg_numbers", "branch", "total"), show="headings")
+    tree.heading("room_no", text="Room No")
+    tree.heading("reg_numbers", text="University Registration Number")
+    tree.heading("branch", text="Branch")
+    tree.heading("total", text="Total")
+    tree.column("room_no", width=100, anchor="center")
+    tree.column("reg_numbers", width=300, anchor="center")
+    tree.column("branch", width=100, anchor="center")
+    tree.column("total", width=50, anchor="center")
+    tree.pack(fill="both", expand=True)
+
+    save_pdf_button = ttk.Button(root, text="Save as PDF",
+                                    command=lambda: pdf_classroom_details(course_year_to_classrooms))
+    save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
+
+    current_course = None
+    for course_year, classroom_dict in course_year_to_classrooms.items():
+        course_name = course_year.split('_')[0]
+        year = course_year.split('_')[2]
+        course_display = f"{course_name} - {year}"
+        if course_display != current_course:
+            tree.insert("", "end", values=(course_display, "", "", ""), tags=("course_year",))
+            current_course = course_display
+
+        for classroom_name, studs in classroom_dict.items():
+            branch = studs[0][8:11] if studs else ""
+            roll_range = f"{studs[0]} to {studs[-1]}" if len(studs) > 1 else studs[0]
+            tree.insert("", "end", values=(classroom_name, roll_range, branch, str(len(studs))))
+
+    tree.tag_configure("course_year", font=("Arial", 12, "bold"), anchor="center", background="lightblue")
+
+    root.mainloop()
+
+print_classroom_details(classrooms_content, student_year_lists)
+display_classroom_details_gui(classrooms_content, student_year_lists)
