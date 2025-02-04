@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from fpdf import FPDF
 from datetime import datetime
+from PIL import Image
 import os
 
 classes = { 
@@ -33,6 +34,40 @@ student_year_lists = {
     "MEE_year_1": [], "MEE_year_2": [], "MEE_year_3": [],
     "RAE_year_1": [], "RAE_year_2": [], "RAE_year_3": []
 }
+
+def exam_details():
+    type_input = input("Are these Mid semester Exams or End Semester Exams (1 - Mid Semester / 2 - End semester): ")
+    if type_input == "1":
+        exam_type = "Mid Semester"
+    elif type_input == "2":
+        exam_type = "End Semester"
+    else:
+        print("ERROR: Invalid exam type")
+        exit(1)
+
+    sem_input = input("Which kind of semesters are these (1 - Odd / 2 - Even): ")
+    if sem_input == "1":
+        semester_level = "I, III, V Semesters"
+    elif sem_input == "2":
+        semester_level = "II, IV, VI Semesters"
+    else:
+        print("ERROR: Invalid semester input")
+        exit(1)
+
+    # Determine time_slot using exam_type
+    time_slot = '09.30 AM to 11.30 AM' if exam_type == "Mid Semester" else '09.30 AM to 12.30 PM'
+
+    # Return basic details as a dictionary
+    return {
+        "college_name": "Amrita Vishwa Vidyapeetham, Bengaluru Campus",
+        "report_title": "ATTENDANCE & ROOM SUPERINTENDENT'S REPORT",
+        "sub_title": "B.Tech : I Semester II, IV, VI Semesters - End Semester Exam",  # changed line
+        "exam_details": f"{semester_level} - {exam_type} Exam",
+        "time_slot": time_slot
+    }
+
+# NEW: Call exam_details() once and save it globally.
+exam_info = exam_details()
 
 # This input is used to get the current year from the user to determine the first, second and third year students
 current_year = input("Enter the current year: ")
@@ -390,50 +425,50 @@ def attendance_sheet(classrooms_content, df):
 
 attendance_data = attendance_sheet(classrooms_content, df)
 
-from fpdf import FPDF
-import os
-
 def pdf_attendance_sheet(attendance_data):
+    from datetime import datetime
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
-
+    
+    basic = exam_info
+    college_name = basic["college_name"]
+    report_title = basic["report_title"]
+    sub_title = basic["sub_title"]
+    exam_details_text = basic["exam_details"]
+    
+    date_str = datetime.today().strftime("%d-%m-%Y")
+    
+    bw_image_path = "download_bw.png"
+    Image.open("download.png").convert('L').save(bw_image_path)
+    
     for classroom, students in attendance_data.items():
         pdf.add_page()
         
-        # Add Logo
-        pdf.image("download.png", 10, 10, 20)
+        pdf.image(bw_image_path, 10, 10, 20)
         
-        # University Header (Centered)
         pdf.set_font("Times", style='B', size=16)
-        pdf.cell(210, 10, safe_text("Amrita Vishwa Vidyapeetham, Bengaluru"), ln=True, align='C')
-        
+        pdf.cell(210, 10, safe_text(college_name), ln=True, align='C')
         pdf.set_font("Arial", style='BU', size=12)
-        pdf.cell(210, 8, safe_text("ATTENDANCE & ROOM SUPERINTENDENT'S REPORT"), ln=True, align='C')
-        
+        pdf.cell(210, 8, safe_text(report_title), ln=True, align='C')
         pdf.set_font("Arial", style='B', size=12)
-        pdf.cell(210, 8, safe_text("B.Tech : I Semester"), ln=True, align='C')
+        pdf.cell(210, 8, safe_text(sub_title), ln=True, align='C')
         
-        pdf.set_font("Arial", size=11)
-        pdf.cell(210, 8, safe_text("Odd Semester - End Sem. Exam - Nov./Dec. 2024"), ln=True, align='C')
-        
-        # Display the classroom (block number) on the top left above the table
         actual_classroom_name = classroom.replace("classroom_", "")
+        pdf.ln(5)
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(0, 10, safe_text(f"Room No.: {actual_classroom_name}"), ln=True, align='L')
         
-        # Date and Time Box (Adjusted layout)
         pdf.set_xy(145, pdf.get_y()-10)
         pdf.set_font("Arial", size=11, style='B')
-        pdf.cell(55, 8, "Date : 13.12.2024", border=1, align='C')
+        pdf.cell(55, 8, f"Date : {date_str}", border=1, align='C')
         pdf.ln(8)
         pdf.set_x(145)
         pdf.cell(55, 8, "Time: 09.30 AM to 12.30 PM", border=1, align='C')
         
         pdf.ln(12)
-        # Table Headers (properly centered)
         pdf.set_font("Arial", size=10, style='B')
         column_widths = [15, 50, 70, 30, 35]
         row_height = 8
@@ -465,48 +500,54 @@ def attendance_sheet_gui(attendance_data):
     root = tk.Tk()
     root.title("Attendance Sheet")
     root.state("zoomed")
-
+    
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
     canvas.configure(yscrollcommand=scrollbar.set)
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
-
+    
     scrollable_frame = ttk.Frame(canvas)
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-
+    
     save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data))
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
-
+    
+    # Use stored exam_info instead of re-calling exam_details()
+    basic = exam_info
+    college_name = basic["college_name"]
+    report_title = basic["report_title"]
+    sub_title = basic["sub_title"]
+    exam_details_text = basic["exam_details"]
+    
     for classroom, students in attendance_data.items():
-        ttk.Label(scrollable_frame, text="Amrita Vishwa Vidyapeetham, Bengaluru", font=("Times", 18, "bold")).pack(anchor="center")
-        ttk.Label(scrollable_frame, text="ATTENDANCE & ROOM SUPERINTENDENT'S REPORT", font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
-        ttk.Label(scrollable_frame, text="B.Tech : I Semester", font=("Arial", 14)).pack(anchor="center")
-        ttk.Label(scrollable_frame, text="Mid Sem. Exam - Nov./Dec. 2024", font=("Arial", 12)).pack(anchor="center")
+        ttk.Label(scrollable_frame, text=college_name, font=("Times", 18, "bold")).pack(anchor="center")
+        ttk.Label(scrollable_frame, text=report_title, font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
+        ttk.Label(scrollable_frame, text=sub_title, font=("Arial", 14)).pack(anchor="center")
+        ttk.Label(scrollable_frame, text=exam_details_text, font=("Arial", 12)).pack(anchor="center")
         date_time_frame = ttk.Frame(scrollable_frame)
         date_time_frame.pack(fill="x", padx=10, pady=5)
         ttk.Label(date_time_frame, text="Date: __ / __ / 2024", font=("Arial", 12)).pack(side="left")
         ttk.Label(date_time_frame, text="Time: 09.30 AM to 11.30 AM", font=("Arial", 12)).pack(side="right")
-
+    
         actual_classroom_name = classroom.replace("classroom_", "")
         ttk.Label(scrollable_frame, text=f"Room No. {actual_classroom_name}", font=("Arial", 32, "bold"), padding=10).pack(anchor="center", padx=10, pady=5)
-
+    
         columns = ("S.No", "Register No.", "Name", "Booklet No.", "Signature")
         tree = ttk.Treeview(scrollable_frame, columns=columns, show="headings")
-
+    
         for col in columns:
             tree.heading(col, text=col, anchor="center")
             tree.column(col, anchor="center")
-
+    
         for idx, (name, reg_no) in enumerate(students, start=1):
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
-
+    
         tree.pack(fill="x", padx=10, pady=5)
-
+    
     scrollable_frame.update_idletasks()
     canvas.configure(scrollregion=canvas.bbox("all"))
     root.mainloop()
-
 
 attendance_sheet_gui(attendance_data)
 
