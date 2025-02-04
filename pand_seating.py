@@ -218,17 +218,14 @@ def save_as_pdf(arrangement, classes):
     today_date = datetime.today().strftime("%d-%m-%Y")
     college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
 
-    pdf.add_page()
-    pdf.set_font("Arial", size=14, style='B')
-    pdf.cell(200, 10, txt=college_name, ln=True, align='C')
-    pdf.cell(200, 10, txt="Seating Arrangement", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Date: {today_date}", ln=True, align='C')
-    pdf.set_font("Arial", size=12, style='B')
-
     for capacity, details in classes.items():
         for classroom_index, classroom in enumerate(details['classrooms_list']):
-            if classroom_index % 2 == 0:
+            if capacity == "40_capacity" or classroom_index % 2 == 0:
                 pdf.add_page()
+            pdf.set_font("Arial", size=14, style='B')
+            pdf.cell(200, 10, txt=college_name, ln=True, align='C')
+            pdf.cell(200, 10, txt="Seating Arrangement", ln=True, align='C')
+            pdf.set_font("Arial", size=12, style='B')
 
             pdf.set_font("Arial", size=16, style='B')
             pdf.cell(200, 10, txt=f"Classroom {classroom}", ln=True, align='C')
@@ -301,18 +298,14 @@ def seating_gui(arrangement, classrooms_content, classes):
     college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
     today_date = datetime.today().strftime("%d-%m-%Y")
 
-    title_label = tk.Label(scrollable_frame, text=college_name, font=title_font, anchor="center")
-    title_label.grid(row=0, column=0, columnspan=1, pady=10)
-    subtitle_label = tk.Label(scrollable_frame, text=f"Seating Arrangement\nDate: {today_date}", font=subtitle_font, anchor="center")
-    subtitle_label.grid(row=1, column=0, columnspan=1, pady=20)
-
-    classroom_row = 2
     total_students = 0
     for capacity, details in classes.items():
         for classroom_index, classroom in enumerate(details['classrooms_list']):
             frame = tk.Frame(scrollable_frame, pady=20)
-            frame.grid(row=classroom_row, column=0, padx=50, pady=10, sticky="nsew")
-            classroom_row += 1
+            frame.grid(row=classroom_index, column=0, padx=50, pady=10, sticky="nsew")
+
+            tk.Label(frame, text=college_name, font=title_font, anchor="center").pack()
+            tk.Label(frame, text="Seating Arrangement", font=subtitle_font, anchor="center").pack(pady=5)
 
             room_label = tk.Label(frame, text=f"Room No.: {classroom}", font=classroom_font, anchor="center")
             room_label.pack(pady=10)
@@ -359,7 +352,7 @@ def seating_gui(arrangement, classrooms_content, classes):
                 seating_frame.rowconfigure(row, weight=1)
 
     total_students_label = tk.Label(scrollable_frame, text=f"Total Students Seated: {total_students}", font=subtitle_font, anchor="center")
-    total_students_label.grid(row=classroom_row, column=0, columnspan=1, pady=20)
+    total_students_label.grid(row=len(classes['35_capacity']['classrooms_list']) + len(classes['40_capacity']['classrooms_list']) + len(classes['36_capacity']['classrooms_list']), column=0, columnspan=1, pady=20)
 
     scrollable_frame.columnconfigure(0, weight=1)
 
