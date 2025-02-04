@@ -299,10 +299,16 @@ def seating_gui(arrangement, classrooms_content, classes):
     today_date = datetime.today().strftime("%d-%m-%Y")
 
     total_students = 0
-    for capacity, details in classes.items():
+    # Use a row counter for proper grid layout
+    row_counter = 0
+    # Process capacities in desired order
+    capacities_order = ["35_capacity", "40_capacity", "36_capacity"]
+    for capacity in capacities_order:
+        details = classes[capacity]
         for classroom_index, classroom in enumerate(details['classrooms_list']):
             frame = tk.Frame(scrollable_frame, pady=20)
-            frame.grid(row=classroom_index, column=0, padx=50, pady=10, sticky="nsew")
+            frame.grid(row=row_counter, column=0, padx=50, pady=10, sticky="nsew")
+            row_counter += 1
 
             tk.Label(frame, text=college_name, font=title_font, anchor="center").pack()
             tk.Label(frame, text="Seating Arrangement", font=subtitle_font, anchor="center").pack(pady=5)
@@ -352,7 +358,7 @@ def seating_gui(arrangement, classrooms_content, classes):
                 seating_frame.rowconfigure(row, weight=1)
 
     total_students_label = tk.Label(scrollable_frame, text=f"Total Students Seated: {total_students}", font=subtitle_font, anchor="center")
-    total_students_label.grid(row=len(classes['35_capacity']['classrooms_list']) + len(classes['40_capacity']['classrooms_list']) + len(classes['36_capacity']['classrooms_list']), column=0, columnspan=1, pady=20)
+    total_students_label.grid(row=row_counter, column=0, pady=20)
 
     scrollable_frame.columnconfigure(0, weight=1)
 
@@ -384,67 +390,73 @@ def attendance_sheet(classrooms_content, df):
 
 attendance_data = attendance_sheet(classrooms_content, df)
 
-import os
-import tkinter as tk
-from tkinter import ttk
 from fpdf import FPDF
+import os
 
 def pdf_attendance_sheet(attendance_data):
     pdf = FPDF()
-    # Disable auto page break
-    pdf.set_auto_page_break(False, 0)
-
-    def safe_text(text):
-        return text.encode('latin-1', 'replace').decode('latin-1')
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    def safe_text(s):
+        return s.encode('latin-1', 'replace').decode('latin-1')
 
     for classroom, students in attendance_data.items():
         pdf.add_page()
-        pdf.set_font("Times", size=18, style='B')
-        pdf.cell(200, 10, txt=safe_text("Amrita Vishwa Vidyapeetham, Bengaluru"), ln=True, align='C')
-
-        pdf.set_font("Arial", size=16, style='B')
-        pdf.cell(200, 10, txt=safe_text("ATTENDANCE & ROOM SUPERINTENDENT'S REPORT"), ln=True, align='C')
-        pdf.set_font("Arial", size=14)
-        pdf.cell(200, 10, txt=safe_text("B.Tech : I Semester"), ln=True, align='C')
-        pdf.set_font("Arial", size=12)
-        pdf.cell(200, 8, txt=safe_text("Mid Sem. Exam - Nov./Dec. 2024"), ln=True, align='C')
-
-        pdf.set_font("Arial", size=12)
-        pdf.cell(0, 8, txt=safe_text("Date: __ / __ / 2024"), ln=False, align='L')
-        pdf.cell(0, 8, txt=safe_text("Time: 09.30 AM to 11.30 AM"), ln=True, align='R')
-
-        pdf.ln(5)
-        pdf.set_font("Arial", size=20, style='B')
+        
+        # Add Logo
+        pdf.image("download.png", 10, 10, 20)
+        
+        # University Header (Centered)
+        pdf.set_font("Times", style='B', size=16)
+        pdf.cell(210, 10, safe_text("Amrita Vishwa Vidyapeetham, Bengaluru"), ln=True, align='C')
+        
+        pdf.set_font("Arial", style='BU', size=12)
+        pdf.cell(210, 8, safe_text("ATTENDANCE & ROOM SUPERINTENDENT'S REPORT"), ln=True, align='C')
+        
+        pdf.set_font("Arial", style='B', size=12)
+        pdf.cell(210, 8, safe_text("B.Tech : I Semester"), ln=True, align='C')
+        
+        pdf.set_font("Arial", size=11)
+        pdf.cell(210, 8, safe_text("Odd Semester - End Sem. Exam - Nov./Dec. 2024"), ln=True, align='C')
+        
+        # Display the classroom (block number) on the top left above the table
         actual_classroom_name = classroom.replace("classroom_", "")
-        pdf.cell(200, 10, txt=safe_text(f"Room No. {actual_classroom_name}"), ln=True, align='C')
+        pdf.set_font("Arial", style='B', size=12)
+        pdf.cell(0, 10, safe_text(f"Room No.: {actual_classroom_name}"), ln=True, align='L')
+        
+        # Date and Time Box (Adjusted layout)
+        pdf.set_xy(145, pdf.get_y()-10)
+        pdf.set_font("Arial", size=11, style='B')
+        pdf.cell(55, 8, "Date : 13.12.2024", border=1, align='C')
         pdf.ln(8)
-
+        pdf.set_x(145)
+        pdf.cell(55, 8, "Time: 09.30 AM to 12.30 PM", border=1, align='C')
+        
+        pdf.ln(12)
+        # Table Headers (properly centered)
         pdf.set_font("Arial", size=10, style='B')
         column_widths = [15, 50, 70, 30, 35]
-        # Slightly smaller row height
         row_height = 8
         start_x = (210 - sum(column_widths)) / 2
-
-        headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
         pdf.set_x(start_x)
+        headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
         for i, header in enumerate(headers):
-            pdf.cell(column_widths[i], row_height, txt=safe_text(header), border=1, align='C')
+            pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
         pdf.ln(row_height)
-
+        
         pdf.set_font("Arial", size=9)
         for idx, (name, reg_no) in enumerate(students, start=1):
             pdf.set_x(start_x)
-            pdf.cell(column_widths[0], row_height, txt=safe_text(str(idx)), border=1, align='C')
-            pdf.cell(column_widths[1], row_height, txt=safe_text(reg_no), border=1, align='C')
+            pdf.cell(column_widths[0], row_height, str(idx), border=1, align='C')
+            pdf.cell(column_widths[1], row_height, reg_no, border=1, align='C')
             if len(name) > 30:
                 pdf.set_font("Arial", size=8)
-                pdf.cell(column_widths[2], row_height, txt=safe_text(name), border=1, align='C')
+                pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
                 pdf.set_font("Arial", size=9)
             else:
-                pdf.cell(column_widths[2], row_height, txt=safe_text(name), border=1, align='C')
-            pdf.cell(column_widths[3], row_height, txt="", border=1, align='C')
-            pdf.cell(column_widths[4], row_height, txt="", border=1, ln=True, align='C')
-
+                pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
+            pdf.cell(column_widths[3], row_height, "", border=1, align='C')
+            pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
