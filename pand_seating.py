@@ -54,20 +54,40 @@ def exam_details():
 
     sem_input = input("Which kind of semesters are these (1 - Odd / 2 - Even): ")
     if sem_input == "1":
-        semester_level = "I, III, V Sem"
+        semester_level = "I, III, V"
+        sem_type = "Odd"
     elif sem_input == "2":
-        semester_level = "II, IV, VI Sem"
+        semester_level = "II, IV, VI"
+        sem_type = "Even"
     else:
         print("ERROR: Invalid semester input")
         exit(1)
 
-    time_slot = '09.30 AM to 11.30 AM' if exam_type == "Mid Semester" else '09.30 AM to 12.30 PM'
+    time_slot = input("Enter the time slot for the exams (1 - Morning , 2 - Afternoon): ")
+    if exam_type == "Mid Sem":
+        if time_slot == "1":
+            time_slot = "09:30 AM to 11:30 AM"
+        elif time_slot == "2":
+            time_slot = "01:30 PM to 03:30 PM"
+        else:
+            print("ERROR")
+    elif exam_type == "End Sem":
+        if time_slot == "1":
+            time_slot = "09:30 AM to 12:30 PM"
+        elif time_slot == "2":
+            time_slot = "01:30 PM to 04:30 PM"
+        else:
+            print("ERROR")
+    else:
+        print("ERROR")
 
     return {
         "college_name": "Amrita Vishwa Vidyapeetham, Bengaluru Campus",
         "report_title": "ATTENDANCE & ROOM SUPERINTENDENT'S REPORT",
         "sub_title": f"B-Tech   {semester_level} {exam_type} Exams",
         "exam_details": f"{semester_level} - {exam_type} Exam",
+        'sem_type': sem_type,
+        'exam_type': exam_type,
         "time_slot": time_slot,
         'month_details': exam_month
     }
@@ -438,6 +458,7 @@ def pdf_attendance_sheet(attendance_data):
         return s.encode('latin-1', 'replace').decode('latin-1')
     
     basic = exam_info
+    # Removed: exam = basic['exam']
     college_name = basic["college_name"]
     report_title = basic["report_title"]
     sub_title = basic["sub_title"]
@@ -459,6 +480,8 @@ def pdf_attendance_sheet(attendance_data):
         pdf.cell(210, 8, safe_text(report_title), ln=True, align='C')
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(210, 8, safe_text(sub_title), ln=True, align='C')
+        pdf.cell(210, 8, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"),
+                ln=True, align='C')
         
         actual_classroom_name = classroom.replace("classroom_", "")
         pdf.ln(5)
@@ -518,13 +541,15 @@ def attendance_sheet_gui(attendance_data):
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
     
     basic = exam_info
+    sem_type = basic['sem_type']
+    exam_type = basic['exam_type']
     college_name = basic["college_name"]
     report_title = basic["report_title"]
     sub_title = basic["sub_title"]
     exam_details_text = basic["exam_details"]
+    exam_month = basic["month_details"]
 
-    # NEW: Use dynamic date and time_slot from exam_info
-    from datetime import datetime
+    current_year = datetime.today().strftime("%Y")
     date_str = datetime.today().strftime("%d-%m-%Y")
     time_slot = basic["time_slot"]
 
@@ -532,6 +557,7 @@ def attendance_sheet_gui(attendance_data):
         ttk.Label(scrollable_frame, text=college_name, font=("Times", 18, "bold")).pack(anchor="center")
         ttk.Label(scrollable_frame, text=report_title, font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
         ttk.Label(scrollable_frame, text=sub_title, font=("Arial", 14)).pack(anchor="center")
+        ttk.Label(scrollable_frame, text=f"{sem_type} - {exam_type}. Exam - {exam_month}. {current_year}", font=("Arial", 12)).pack(anchor="center")
         ttk.Label(scrollable_frame, text=exam_details_text, font=("Arial", 12)).pack(anchor="center")
         date_time_frame = ttk.Frame(scrollable_frame)
         date_time_frame.pack(fill="x", padx=10, pady=5)
