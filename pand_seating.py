@@ -38,35 +38,40 @@ student_year_lists = {
 def exam_details():
     type_input = input("Are these Mid semester Exams or End Semester Exams (1 - Mid Semester / 2 - End semester): ")
     if type_input == "1":
-        exam_type = "Mid Semester"
+        exam_type = "Mid Sem"
     elif type_input == "2":
-        exam_type = "End Semester"
+        exam_type = "End Sem"
     else:
         print("ERROR: Invalid exam type")
         exit(1)
 
+    exam_month_start = input("Which month the exams start: ")
+    exam_month_end = input("Which month the exams end: ")
+    if exam_month_start == exam_month_end:
+        exam_month = exam_month_start
+    else:
+        exam_month = f"{exam_month_start} - {exam_month_end}"
+
     sem_input = input("Which kind of semesters are these (1 - Odd / 2 - Even): ")
     if sem_input == "1":
-        semester_level = "I, III, V Semesters"
+        semester_level = "I, III, V Sem"
     elif sem_input == "2":
-        semester_level = "II, IV, VI Semesters"
+        semester_level = "II, IV, VI Sem"
     else:
         print("ERROR: Invalid semester input")
         exit(1)
 
-    # Determine time_slot using exam_type
     time_slot = '09.30 AM to 11.30 AM' if exam_type == "Mid Semester" else '09.30 AM to 12.30 PM'
 
-    # Return basic details as a dictionary
     return {
         "college_name": "Amrita Vishwa Vidyapeetham, Bengaluru Campus",
         "report_title": "ATTENDANCE & ROOM SUPERINTENDENT'S REPORT",
-        "sub_title": "B.Tech : I Semester II, IV, VI Semesters - End Semester Exam",  # changed line
+        "sub_title": f"B-Tech   {semester_level} {exam_type} Exams",
         "exam_details": f"{semester_level} - {exam_type} Exam",
-        "time_slot": time_slot
+        "time_slot": time_slot,
+        'month_details': exam_month
     }
 
-# NEW: Call exam_details() once and save it globally.
 exam_info = exam_details()
 
 # This input is used to get the current year from the user to determine the first, second and third year students
@@ -245,21 +250,22 @@ def classroom_data(classrooms_content):
 arrangement, classrooms_content = seating_arrangement(classes, students_data)
 classroom_data(classrooms_content)
 
-def save_as_pdf(arrangement, classes):
+def save_as_pdf(arrangement, classes, exam_info):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=10, style='B')
 
     today_date = datetime.today().strftime("%d-%m-%Y")
     college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
+    current_year = datetime.today().strftime("%Y")
 
     for capacity, details in classes.items():
         for classroom_index, classroom in enumerate(details['classrooms_list']):
             if capacity == "40_capacity" or classroom_index % 2 == 0:
                 pdf.add_page()
-            pdf.set_font("Arial", size=14, style='B')
+            pdf.set_font("Arial", size=16, style='B')  
             pdf.cell(200, 10, txt=college_name, ln=True, align='C')
-            pdf.cell(200, 10, txt="Seating Arrangement", ln=True, align='C')
+            pdf.set_font("Arial", size=12, style='B')  
+            pdf.cell(200, 10, txt=f"Seating Arrangement for {exam_info['sub_title']} - {exam_info['month_details']} {current_year}", ln=True, align='C')
             pdf.set_font("Arial", size=12, style='B')
 
             pdf.set_font("Arial", size=16, style='B')
@@ -267,14 +273,14 @@ def save_as_pdf(arrangement, classes):
             pdf.set_font("Arial", size=12, style='B')
 
             if capacity == "36_capacity":
-                table_width = details['columns'] * 30  
+                table_width = details['columns'] * 30
                 cell_width = 30
                 font_size = 8
             else:
                 table_width = details['columns'] * 35
                 cell_width = 35
                 font_size = 10
-            start_x = (210 - table_width) / 2  
+            start_x = (210 - table_width) / 2
 
             pdf.set_x(start_x)
             for col in range(details['columns']):
@@ -292,7 +298,7 @@ def save_as_pdf(arrangement, classes):
             pdf.ln()
 
             pdf.set_font("Arial", size=font_size, style='B')
-            for row in range(details['rows']): 
+            for row in range(details['rows']):
                 pdf.set_x(start_x)
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
@@ -304,7 +310,7 @@ def save_as_pdf(arrangement, classes):
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
-def seating_gui(arrangement, classrooms_content, classes):
+def seating_gui(arrangement, classrooms_content, classes, exam_info):
     root = tk.Tk()
     root.title("Seating Arrangement")
     root.state("zoomed")
@@ -321,22 +327,21 @@ def seating_gui(arrangement, classrooms_content, classes):
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar.set)
 
-    save_button = ttk.Button(root, text="Save as PDF", command=lambda: save_as_pdf(arrangement, classes))
+    save_button = ttk.Button(root, text="Save as PDF", command=lambda: save_as_pdf(arrangement, classes, exam_info))
     save_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
     title_font = ("Arial", 28, "bold")
     subtitle_font = ("Arial", 18, "bold")
-    classroom_font = ("Arial", 30, "bold") 
+    classroom_font = ("Arial", 30, "bold")
     header_font = ("Arial", 16, "bold")
-    seat_font = ("Arial", 14, "bold")  
+    seat_font = ("Arial", 14, "bold")
 
     college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
     today_date = datetime.today().strftime("%d-%m-%Y")
+    current_year = datetime.today().strftime("%Y")
 
     total_students = 0
-    # Use a row counter for proper grid layout
     row_counter = 0
-    # Process capacities in desired order
     capacities_order = ["35_capacity", "40_capacity", "36_capacity"]
     for capacity in capacities_order:
         details = classes[capacity]
@@ -346,7 +351,7 @@ def seating_gui(arrangement, classrooms_content, classes):
             row_counter += 1
 
             tk.Label(frame, text=college_name, font=title_font, anchor="center").pack()
-            tk.Label(frame, text="Seating Arrangement", font=subtitle_font, anchor="center").pack(pady=5)
+            tk.Label(frame, text=f"Seating Arrangement for {exam_info['sub_title']} - {exam_info['month_details']} {current_year}", font=subtitle_font, anchor="center").pack(pady=5)
 
             room_label = tk.Label(frame, text=f"Room No.: {classroom}", font=classroom_font, anchor="center")
             room_label.pack(pady=10)
@@ -402,7 +407,7 @@ def seating_gui(arrangement, classrooms_content, classes):
 
     root.mainloop()
 
-seating_gui(arrangement, classrooms_content, classes)
+seating_gui(arrangement, classrooms_content, classes, exam_info)
 
 def attendance_sheet(classrooms_content, df):
     attendance_data = {}
@@ -426,7 +431,6 @@ def attendance_sheet(classrooms_content, df):
 attendance_data = attendance_sheet(classrooms_content, df)
 
 def pdf_attendance_sheet(attendance_data):
-    from datetime import datetime
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     
@@ -442,7 +446,7 @@ def pdf_attendance_sheet(attendance_data):
     date_str = datetime.today().strftime("%d-%m-%Y")
     
     bw_image_path = "download_bw.png"
-    Image.open("download.png").convert('L').save(bw_image_path)
+    Image.open("download_bw.png").convert('L').save(bw_image_path)
     
     for classroom, students in attendance_data.items():
         pdf.add_page()
@@ -513,13 +517,17 @@ def attendance_sheet_gui(attendance_data):
     save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data))
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
     
-    # Use stored exam_info instead of re-calling exam_details()
     basic = exam_info
     college_name = basic["college_name"]
     report_title = basic["report_title"]
     sub_title = basic["sub_title"]
     exam_details_text = basic["exam_details"]
-    
+
+    # NEW: Use dynamic date and time_slot from exam_info
+    from datetime import datetime
+    date_str = datetime.today().strftime("%d-%m-%Y")
+    time_slot = basic["time_slot"]
+
     for classroom, students in attendance_data.items():
         ttk.Label(scrollable_frame, text=college_name, font=("Times", 18, "bold")).pack(anchor="center")
         ttk.Label(scrollable_frame, text=report_title, font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
@@ -527,8 +535,8 @@ def attendance_sheet_gui(attendance_data):
         ttk.Label(scrollable_frame, text=exam_details_text, font=("Arial", 12)).pack(anchor="center")
         date_time_frame = ttk.Frame(scrollable_frame)
         date_time_frame.pack(fill="x", padx=10, pady=5)
-        ttk.Label(date_time_frame, text="Date: __ / __ / 2024", font=("Arial", 12)).pack(side="left")
-        ttk.Label(date_time_frame, text="Time: 09.30 AM to 11.30 AM", font=("Arial", 12)).pack(side="right")
+        ttk.Label(date_time_frame, text=f"Date: {date_str}", font=("Arial", 12)).pack(side="left")
+        ttk.Label(date_time_frame, text=f"Time: {time_slot}", font=("Arial", 12)).pack(side="right")
     
         actual_classroom_name = classroom.replace("classroom_", "")
         ttk.Label(scrollable_frame, text=f"Room No. {actual_classroom_name}", font=("Arial", 32, "bold"), padding=10).pack(anchor="center", padx=10, pady=5)
@@ -573,6 +581,11 @@ def pdf_classroom_details(course_year_to_classrooms):
 
     pdf.set_font("Arial", size=12, style='B')
     pdf.add_page()
+
+    bw_image_path = "download1_bw.png"
+    pdf.image(bw_image_path, x=(210 - 200) / 2, y=10, w=200) 
+
+    pdf.ln(40) 
     pdf.cell(200, 10, txt="Classroom Details", ln=True, align='C')
 
     column_headers = ["Room No", "University Registration Number", "Branch", "Total"]
