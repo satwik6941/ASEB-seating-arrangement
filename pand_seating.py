@@ -254,7 +254,7 @@ def seating_arrangement(classes, students_data):
     return arrangement, classrooms_content
 
 def classroom_data(classrooms_content):
-    print("\nClassroom Data:")
+    print()
     for classroom, students in classrooms_content.items():
         num_students = len(students)
         class_counts = {}
@@ -439,7 +439,6 @@ def attendance_sheet(classrooms_content, df):
 
     skip_words = {"Column 1", "Column 2", "Column 3", "Column 4", "Column 5", "Column 6", "Door", "side", "Door Side", "Date"}
     attendance_sheet_data = {}
-    print("\nAttendance Sheet:")
     for classroom, students in classrooms_content.items():
         attendance_sheet_data[classroom] = []
         for student in students:
@@ -458,7 +457,6 @@ def pdf_attendance_sheet(attendance_data):
         return s.encode('latin-1', 'replace').decode('latin-1')
     
     basic = exam_info
-    # Removed: exam = basic['exam']
     college_name = basic["college_name"]
     report_title = basic["report_title"]
     sub_title = basic["sub_title"]
@@ -558,7 +556,6 @@ def attendance_sheet_gui(attendance_data):
         ttk.Label(scrollable_frame, text=report_title, font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
         ttk.Label(scrollable_frame, text=sub_title, font=("Arial", 14)).pack(anchor="center")
         ttk.Label(scrollable_frame, text=f"{sem_type} - {exam_type}. Exam - {exam_month}. {current_year}", font=("Arial", 12)).pack(anchor="center")
-        ttk.Label(scrollable_frame, text=exam_details_text, font=("Arial", 12)).pack(anchor="center")
         date_time_frame = ttk.Frame(scrollable_frame)
         date_time_frame.pack(fill="x", padx=10, pady=5)
         ttk.Label(date_time_frame, text=f"Date: {date_str}", font=("Arial", 12)).pack(side="left")
@@ -595,11 +592,7 @@ def print_classroom_details(classrooms_content, student_year_lists):
                     course_year_to_classrooms[course_year] = {}
                 course_year_to_classrooms[course_year][classroom] = intersection
 
-    for course_year, classroom_dict in course_year_to_classrooms.items():
-        print(f"\n{course_year}:")
-        for classroom_name, studs in classroom_dict.items():
-            print(f"  Classroom {classroom_name}: {len(studs)} students")
-            print(f"    Roll numbers: {studs[0]} to {studs[-1]}")
+
 
 def pdf_classroom_details(course_year_to_classrooms):
     pdf = FPDF()
