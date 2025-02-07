@@ -45,6 +45,10 @@ def exam_details():
         print("ERROR")
         exit(1)
 
+    academic_year_from = input("Enter the academic year: ")
+    academic_year_to = str(int(academic_year_from) + 1)
+    academic_year = f"{academic_year_from} - {academic_year_to}"
+
     exam_month_start = input("Which month the exams start: ")
     exam_month_end = input("Which month the exams end: ")
     if exam_month_start == exam_month_end:
@@ -87,6 +91,7 @@ def exam_details():
         "sub_title": f"B-Tech   {semester_level} {exam_type} Exams",
         "exam_details": f"{semester_level} - {exam_type} Exam",
         'sem_type': sem_type,
+        'academic_year': academic_year,
         'exam_type': exam_type,
         "time_slot": time_slot,
         'month_details': exam_month
@@ -595,7 +600,37 @@ def attendance_sheet_gui(attendance_data):
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
     
         tree.pack(fill="x", padx=10, pady=5)
-    
+
+        summary_frame = ttk.Frame(scrollable_frame)
+        summary_frame.pack(fill="x", padx=10, pady=10)
+
+        ttk.Label(
+            summary_frame,
+            text="Total No of Students Present: __________\n\nTotal No of Students Absent: __________",
+            font=("Arial", 10),
+            borderwidth=1,
+            relief="solid",
+            padding=5
+        ).grid(row=0, column=0, sticky="nsew", padx=5)
+
+        ttk.Label(
+            summary_frame,
+            text="Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________",
+            font=("Arial", 10),
+            borderwidth=1,
+            relief="solid",
+            padding=5
+        ).grid(row=0, column=1, sticky="nsew", padx=5)
+
+        ttk.Label(
+            summary_frame,
+            text="Room Superintendent\n\nDeputy Controller of Exams",
+            font=("Arial", 10),
+            borderwidth=1,
+            relief="solid",
+            padding=5
+        ).grid(row=0, column=2, sticky="nsew", padx=5)
+
     scrollable_frame.update_idletasks()
     canvas.configure(scrollregion=canvas.bbox("all"))
     root.mainloop()
@@ -612,18 +647,29 @@ def print_classroom_details(classrooms_content, student_year_lists):
                     course_year_to_classrooms[course_year] = {}
                 course_year_to_classrooms[course_year][classroom] = intersection
 
-def pdf_classroom_details(course_year_to_classrooms):
+def pdf_classroom_details(course_year_to_classrooms, exam_info): 
+    def safe_text(s):
+        return s.encode('latin-1', 'replace').decode('latin-1')
+
+    current_year = datetime.now().year
+
+    basic = exam_info
+    academic_year = basic['academic_year']
+
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-
     pdf.set_font("Arial", size=12, style='B')
     pdf.add_page()
 
     bw_image_path = "download1_bw.png"
     pdf.image(bw_image_path, x=(210 - 200) / 2, y=10, w=200) 
 
-    pdf.ln(40) 
-    pdf.cell(200, 10, txt="Classroom Details", ln=True, align='C')
+    pdf.ln(30)
+    academic_year_text = f"ACADEMIC YEAR {academic_year} SEATING ARRANGEMENT FOR {exam_info['exam_type'].upper()}/SUPPLEMENTARY EXAMS - {exam_info['month_details'].upper()} {current_year}"
+    pdf.set_font("Arial", size=10,style='B')
+    pdf.cell(200, 10, txt=safe_text(academic_year_text), ln=True, align='C')
+
+    pdf.cell(200, 10, txt=safe_text("Classroom Details"), ln=True, align='C')
 
     column_headers = ["Room No", "University Registration Number", "Branch", "Total"]
     column_widths = [50, 80, 40, 20]
@@ -633,12 +679,12 @@ def pdf_classroom_details(course_year_to_classrooms):
     for course_year, classroom_dict in course_year_to_classrooms.items():
         course_display = f"{course_year.split('_')[0]} - {course_year.split('_')[2]}"
         if course_display != current_course:
-            pdf.ln(10)
+            pdf.ln(5)
             pdf.set_font("Arial", size=10, style='B')
-            pdf.cell(200, 10, txt=course_display, ln=True, align='C')
+            pdf.cell(200, 10, txt=safe_text(course_display), ln=True, align='C')
             pdf.set_x(start_x)
             for i, header in enumerate(column_headers):
-                pdf.cell(column_widths[i], 8, header, border=1, align='C')
+                pdf.cell(column_widths[i], 8, txt=safe_text(header), border=1, align='C')
             pdf.ln()
             current_course = course_display
 
@@ -649,14 +695,14 @@ def pdf_classroom_details(course_year_to_classrooms):
             total_count = len(studs)
             row_values = [classroom_name, roll_range, branch, str(total_count)]
             for i, val in enumerate(row_values):
-                pdf.cell(column_widths[i], 8, txt=val, border=1, align='C')
+                pdf.cell(column_widths[i], 8, txt=safe_text(val), border=1, align='C')
             pdf.ln()
 
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "classroom_details.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
-def display_classroom_details_gui(classrooms_content, student_year_lists):
+def display_classroom_details_gui(classrooms_content, student_year_lists, exam_info):
     course_year_to_classrooms = {}
     for course_year, students_list in student_year_lists.items():
         for classroom, studs in classrooms_content.items():
@@ -688,7 +734,7 @@ def display_classroom_details_gui(classrooms_content, student_year_lists):
     tree.pack(fill="both", expand=True)
 
     save_pdf_button = ttk.Button(root, text="Save as PDF",
-                                    command=lambda: pdf_classroom_details(course_year_to_classrooms))
+                                    command=lambda: pdf_classroom_details(course_year_to_classrooms,exam_info))
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
 
     current_course = None
@@ -710,4 +756,4 @@ def display_classroom_details_gui(classrooms_content, student_year_lists):
     root.mainloop()
 
 print_classroom_details(classrooms_content, student_year_lists)
-display_classroom_details_gui(classrooms_content, student_year_lists)
+display_classroom_details_gui(classrooms_content, student_year_lists, exam_info)
