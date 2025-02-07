@@ -42,7 +42,7 @@ def exam_details():
     elif type_input == "2":
         exam_type = "End Sem"
     else:
-        print("ERROR: Invalid exam type")
+        print("ERROR")
         exit(1)
 
     exam_month_start = input("Which month the exams start: ")
@@ -60,7 +60,7 @@ def exam_details():
         semester_level = "II, IV, VI"
         sem_type = "Even"
     else:
-        print("ERROR: Invalid semester input")
+        print("ERROR")
         exit(1)
 
     time_slot = input("Enter the time slot for the exams (1 - Morning , 2 - Afternoon): ")
@@ -449,50 +449,50 @@ def attendance_sheet(classrooms_content, df):
 
 attendance_data = attendance_sheet(classrooms_content, df)
 
-def pdf_attendance_sheet(attendance_data):
+def pdf_attendance_sheet(attendance_data, exam_info):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-    
+
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
-    
+
     basic = exam_info
     college_name = basic["college_name"]
     report_title = basic["report_title"]
     sub_title = basic["sub_title"]
     exam_details_text = basic["exam_details"]
-    
+    time_slot = basic["time_slot"]
+
     date_str = datetime.today().strftime("%d-%m-%Y")
-    
+
     bw_image_path = "download_bw.png"
     Image.open("download_bw.png").convert('L').save(bw_image_path)
-    
+
     for classroom, students in attendance_data.items():
         pdf.add_page()
-        
+
         pdf.image(bw_image_path, 10, 10, 20)
-        
+
         pdf.set_font("Times", style='B', size=16)
         pdf.cell(210, 10, safe_text(college_name), ln=True, align='C')
         pdf.set_font("Arial", style='BU', size=12)
         pdf.cell(210, 8, safe_text(report_title), ln=True, align='C')
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(210, 8, safe_text(sub_title), ln=True, align='C')
-        pdf.cell(210, 8, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"),
-                ln=True, align='C')
-        
+        pdf.cell(210, 8, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')
+
         actual_classroom_name = classroom.replace("classroom_", "")
         pdf.ln(5)
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(0, 10, safe_text(f"Room No.: {actual_classroom_name}"), ln=True, align='L')
-        
+
         pdf.set_xy(145, pdf.get_y()-10)
         pdf.set_font("Arial", size=11, style='B')
         pdf.cell(55, 8, f"Date : {date_str}", border=1, align='C')
         pdf.ln(8)
         pdf.set_x(145)
-        pdf.cell(55, 8, "Time: 09.30 AM to 12.30 PM", border=1, align='C')
-        
+        pdf.cell(55, 8, f"Time : {time_slot}", border=1, align='C')
+
         pdf.ln(12)
         pdf.set_font("Arial", size=10, style='B')
         column_widths = [15, 50, 70, 30, 35]
@@ -503,7 +503,7 @@ def pdf_attendance_sheet(attendance_data):
         for i, header in enumerate(headers):
             pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
         pdf.ln(row_height)
-        
+
         pdf.set_font("Arial", size=9)
         for idx, (name, reg_no) in enumerate(students, start=1):
             pdf.set_x(start_x)
@@ -517,6 +517,26 @@ def pdf_attendance_sheet(attendance_data):
                 pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
             pdf.cell(column_widths[3], row_height, "", border=1, align='C')
             pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
+
+        pdf.ln(10)
+        summary_width = 60
+        summary_height = 24 
+        total_width = summary_width * 3
+        start_x = (210 - total_width) / 2
+        current_y = pdf.get_y()
+
+        pdf.set_xy(start_x, current_y)
+        pdf.set_font("Arial", size=8)
+        pdf.multi_cell(summary_width, summary_height / 3, "Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n", border=1, align='L')
+
+        pdf.set_xy(start_x + summary_width, current_y)
+        pdf.set_font("Arial", size=8)
+        pdf.multi_cell(summary_width, summary_height / 3, "Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n", border=1, align='L')
+
+        pdf.set_xy(start_x + 2 * summary_width, current_y)
+        pdf.set_font("Arial", size=8)
+        pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams\n\n", border=1, align='L')
+
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
@@ -535,7 +555,7 @@ def attendance_sheet_gui(attendance_data):
     scrollable_frame = ttk.Frame(canvas)
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
     
-    save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data))
+    save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data, exam_info))
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
     
     basic = exam_info
@@ -591,8 +611,6 @@ def print_classroom_details(classrooms_content, student_year_lists):
                 if course_year not in course_year_to_classrooms:
                     course_year_to_classrooms[course_year] = {}
                 course_year_to_classrooms[course_year][classroom] = intersection
-
-
 
 def pdf_classroom_details(course_year_to_classrooms):
     pdf = FPDF()
