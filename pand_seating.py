@@ -476,32 +476,49 @@ def pdf_attendance_sheet(attendance_data, exam_info):
     for classroom, students in attendance_data.items():
         pdf.add_page()
 
-        pdf.image(bw_image_path, 10, 10, 20)
+        # Logo
+        pdf.image(bw_image_path, 10, 5, 15)
 
-        pdf.set_font("Times", style='B', size=16)
-        pdf.cell(210, 10, safe_text(college_name), ln=True, align='C')
-        pdf.set_font("Arial", style='BU', size=12)
-        pdf.cell(210, 8, safe_text(report_title), ln=True, align='C')
-        pdf.set_font("Arial", style='B', size=12)
-        pdf.cell(210, 8, safe_text(sub_title), ln=True, align='C')
-        pdf.cell(210, 8, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')
+        # College name
+        pdf.set_font("Times", style='B', size=11)
+        pdf.set_xy(25, 5)
+        pdf.cell(175, 6, safe_text(college_name), ln=True, align='C')
 
+        # Date and Time on right side - reduced size and pushed right
+        pdf.set_font("Arial", size=9, style='B')  # Reduced from 10 to 9
+        pdf.set_xy(160, 12)  # Pushed right
+        pdf.cell(40, 4, f"Date: {date_str}", ln=True, align='C')  # Changed to center alignment
+        pdf.set_xy(160, 17)  # Adjusted spacing between date and time
+        pdf.cell(40, 4, f"Time: {time_slot}", ln=True, align='C')
+
+        # Report title
+        pdf.set_font("Arial", style='BU', size=8)
+        pdf.set_xy(25, 12)
+        pdf.cell(175, 5, safe_text(report_title), ln=True, align='C')
+
+        # Sub title
+        pdf.set_font("Arial", style='B', size=8)
+        pdf.set_xy(25, 18)
+        pdf.cell(175, 5, safe_text(sub_title), ln=True, align='C')
+
+        # Exam details
+        pdf.set_xy(25, 24)
+        pdf.cell(175, 5, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')
+
+        # Room details - moved up to be just below the image
         actual_classroom_name = classroom.replace("classroom_", "")
-        pdf.ln(5)
-        pdf.set_font("Arial", style='B', size=12)
-        pdf.cell(0, 10, safe_text(f"Room No.: {actual_classroom_name}"), ln=True, align='L')
+        pdf.set_font("Arial", style='B', size=11)  # Increased size from 9 to 11
+        pdf.set_xy(10, 25)  # Positioned just below the image
+        # Make room number extra bold by printing it twice with slight offset
+        pdf.cell(0, 7, safe_text(f"Room No.: {actual_classroom_name}"), ln=True, align='L')
+        pdf.set_xy(10, 25)
+        pdf.cell(0, 7, safe_text(f"Room No.: {actual_classroom_name}"), ln=True, align='L')
 
-        pdf.set_xy(145, pdf.get_y()-10)
-        pdf.set_font("Arial", size=11, style='B')
-        pdf.cell(55, 8, f"Date : {date_str}", border=1, align='C')
-        pdf.ln(8)
-        pdf.set_x(145)
-        pdf.cell(55, 8, f"Time : {time_slot}", border=1, align='C')
-
-        pdf.ln(12)
-        pdf.set_font("Arial", size=10, style='B')
+        # Table headers
+        pdf.ln(2)  # Reduced space after room number
+        pdf.set_font("Arial", size=8, style='B')
         column_widths = [15, 50, 70, 30, 35]
-        row_height = 8
+        row_height = 6
         start_x = (210 - sum(column_widths)) / 2
         pdf.set_x(start_x)
         headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
@@ -509,60 +526,62 @@ def pdf_attendance_sheet(attendance_data, exam_info):
             pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
         pdf.ln(row_height)
 
-        pdf.set_font("Arial", size=9)
+        # Table content
+        pdf.set_font("Arial", size=8)
         for idx, (name, reg_no) in enumerate(students, start=1):
             pdf.set_x(start_x)
             pdf.cell(column_widths[0], row_height, str(idx), border=1, align='C')
             pdf.cell(column_widths[1], row_height, reg_no, border=1, align='C')
             if len(name) > 30:
-                pdf.set_font("Arial", size=8)
+                pdf.set_font("Arial", size=7)
                 pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
-                pdf.set_font("Arial", size=9)
+                pdf.set_font("Arial", size=8)
             else:
                 pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
             pdf.cell(column_widths[3], row_height, "", border=1, align='C')
             pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
 
-        pdf.ln(10)
+        # Summary section
+        pdf.ln(7)
         summary_width = 60
-        summary_height = 24 
+        summary_height = 18
         total_width = summary_width * 3
         start_x = (210 - total_width) / 2
         current_y = pdf.get_y()
 
         pdf.set_xy(start_x, current_y)
-        pdf.set_font("Arial", size=8)
+        pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n", border=1, align='L')
 
         pdf.set_xy(start_x + summary_width, current_y)
-        pdf.set_font("Arial", size=8)
+        pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n", border=1, align='L')
 
         pdf.set_xy(start_x + 2 * summary_width, current_y)
-        pdf.set_font("Arial", size=8)
+        pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams\n\n", border=1, align='L')
 
     downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
-def attendance_sheet_gui(attendance_data):
+def attendance_sheet_gui(attendance_data, exam_info):
     root = tk.Tk()
     root.title("Attendance Sheet")
     root.state("zoomed")
-    
+
     canvas = tk.Canvas(root)
     scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
     canvas.configure(yscrollcommand=scrollbar.set)
     scrollbar.pack(side="right", fill="y")
     canvas.pack(side="left", fill="both", expand=True)
-    
+
     scrollable_frame = ttk.Frame(canvas)
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    
+
     save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data, exam_info))
     save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
-    
+
     basic = exam_info
     sem_type = basic['sem_type']
     exam_type = basic['exam_type']
@@ -581,24 +600,26 @@ def attendance_sheet_gui(attendance_data):
         ttk.Label(scrollable_frame, text=report_title, font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
         ttk.Label(scrollable_frame, text=sub_title, font=("Arial", 14)).pack(anchor="center")
         ttk.Label(scrollable_frame, text=f"{sem_type} - {exam_type}. Exam - {exam_month}. {current_year}", font=("Arial", 12)).pack(anchor="center")
+
         date_time_frame = ttk.Frame(scrollable_frame)
         date_time_frame.pack(fill="x", padx=10, pady=5)
-        ttk.Label(date_time_frame, text=f"Date: {date_str}", font=("Arial", 12)).pack(side="left")
-        ttk.Label(date_time_frame, text=f"Time: {time_slot}", font=("Arial", 12)).pack(side="right")
-    
+
         actual_classroom_name = classroom.replace("classroom_", "")
-        ttk.Label(scrollable_frame, text=f"Room No. {actual_classroom_name}", font=("Arial", 32, "bold"), padding=10).pack(anchor="center", padx=10, pady=5)
-    
+        ttk.Label(date_time_frame, text=f"Room No. {actual_classroom_name}", font=("Arial", 16, "bold"), padding=10).pack(side="left", padx=10, pady=5)
+
+        ttk.Label(date_time_frame, text=f"Date: {date_str}", font=("Arial", 10)).pack(side="right", padx=10)
+        ttk.Label(date_time_frame, text=f"Time: {time_slot}", font=("Arial", 10)).pack(side="right", padx=10)
+
         columns = ("S.No", "Register No.", "Name", "Booklet No.", "Signature")
         tree = ttk.Treeview(scrollable_frame, columns=columns, show="headings")
-    
+
         for col in columns:
             tree.heading(col, text=col, anchor="center")
             tree.column(col, anchor="center")
-    
+
         for idx, (name, reg_no) in enumerate(students, start=1):
             tree.insert("", "end", values=(idx, reg_no, name, "", ""))
-    
+
         tree.pack(fill="x", padx=10, pady=5)
 
         summary_frame = ttk.Frame(scrollable_frame)
@@ -606,7 +627,7 @@ def attendance_sheet_gui(attendance_data):
 
         ttk.Label(
             summary_frame,
-            text="Total No of Students Present: __________\n\nTotal No of Students Absent: __________",
+            text="Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n",
             font=("Arial", 10),
             borderwidth=1,
             relief="solid",
@@ -615,7 +636,7 @@ def attendance_sheet_gui(attendance_data):
 
         ttk.Label(
             summary_frame,
-            text="Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________",
+            text="Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n",
             font=("Arial", 10),
             borderwidth=1,
             relief="solid",
@@ -624,7 +645,7 @@ def attendance_sheet_gui(attendance_data):
 
         ttk.Label(
             summary_frame,
-            text="Room Superintendent\n\nDeputy Controller of Exams",
+            text="Room Superintendent\n\nDeputy Controller of Exams\n\n",
             font=("Arial", 10),
             borderwidth=1,
             relief="solid",
@@ -635,7 +656,7 @@ def attendance_sheet_gui(attendance_data):
     canvas.configure(scrollregion=canvas.bbox("all"))
     root.mainloop()
 
-attendance_sheet_gui(attendance_data)
+attendance_sheet_gui(attendance_data,exam_info)
 
 def print_classroom_details(classrooms_content, student_year_lists):
     course_year_to_classrooms = {}
