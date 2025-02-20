@@ -17,22 +17,23 @@ benches = 7
 total_benches = columns * benches
 sections = ['CSE', 'AIE', 'AID', 'ECE', 'EEE', 'EAC', 'ELC', 'MEE', 'RAE']
 
-df = pd.read_csv("student list master upto 2023 (1).csv")
+df = pd.read_excel("Subjects (2).xlsx", sheet_name="names")
 
 first_year_students = []
 second_year_students = []
 third_year_students = []
+fourth_year_students = []
 
 student_year_lists = {
-    "CSE_year_1": [], "CSE_year_2": [], "CSE_year_3": [],
-    "AIE_year_1": [], "AIE_year_2": [], "AIE_year_3": [],
-    "AID_year_1": [], "AID_year_2": [], "AID_year_3": [],
-    "ECE_year_1": [], "ECE_year_2": [], "ECE_year_3": [],
-    "EAC_year_1": [], "EAC_year_2": [], "EAC_year_3": [],
-    "ELC_year_1": [], "ELC_year_2": [], "ELC_year_3": [],
-    "EEE_year_1": [], "EEE_year_2": [], "EEE_year_3": [],
-    "MEE_year_1": [], "MEE_year_2": [], "MEE_year_3": [],
-    "RAE_year_1": [], "RAE_year_2": [], "RAE_year_3": []
+    "CSE_year_1": [], "CSE_year_2": [], "CSE_year_3": [],"CSE_year_4": [],
+    "AIE_year_1": [], "AIE_year_2": [], "AIE_year_3": [],"AIE_year_4": [],
+    "AID_year_1": [], "AID_year_2": [], "AID_year_3": [],"AID_year_4": [],
+    "ECE_year_1": [], "ECE_year_2": [], "ECE_year_3": [],"ECE_year_4": [],
+    "EAC_year_1": [], "EAC_year_2": [], "EAC_year_3": [],"EAC_year_4": [],
+    "ELC_year_1": [], "ELC_year_2": [], "ELC_year_3": [],"ELC_year_4": [],
+    "EEE_year_1": [], "EEE_year_2": [], "EEE_year_3": [],"EEE_year_4": [],
+    "MEE_year_1": [], "MEE_year_2": [], "MEE_year_3": [],"MEE_year_4": [],
+    "RAE_year_1": [], "RAE_year_2": [], "RAE_year_3": [],"RAE_year_4": [],
 }
 
 def exam_details():
@@ -102,17 +103,19 @@ exam_info = exam_details()
 # This input is used to get the current year from the user to determine the first, second and third year students
 current_year = input("Enter the current year: ")
 
-for reg_no in df["Registration numbers"]:
+for reg_no in df["Roll No"]:
     if reg_no[11:13] == current_year[-2:]:
         first_year_students.append(reg_no)
     elif reg_no[11:13] == str(int(current_year[-2:]) - 1).zfill(2):
         second_year_students.append(reg_no)
     elif reg_no[11:13] == str(int(current_year[-2:]) - 2).zfill(2):
         third_year_students.append(reg_no)
+    elif reg_no[11:13] == str(int(current_year[-2:]) - 3).zfill(2):
+        fourth_year_students.append(reg_no)
     else:
-        print("Error")
+        print("Error...")
 
-def student_classification(first_year_students, second_year_students, third_year_students, student_year_lists):
+def student_classification(first_year_students, second_year_students, third_year_students, fourth_year_students, student_year_lists):
     for student_roll_no1 in first_year_students:
         if student_roll_no1[8:11] == 'CSE':
             student_year_lists["CSE_year_1"].append(student_roll_no1)
@@ -179,9 +182,32 @@ def student_classification(first_year_students, second_year_students, third_year
         else:
             print("Error")
 
+    for student_roll_no4 in fourth_year_students:
+        if student_roll_no4[8:11] == 'CSE':
+            student_year_lists["CSE_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'AIE':
+            student_year_lists["AIE_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'AID':
+            student_year_lists["AID_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'ECE':
+            student_year_lists["ECE_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'ELC':
+            student_year_lists["ELC_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'EAC':
+            student_year_lists["EAC_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'EEE':
+            student_year_lists["EEE_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'MEE':
+            student_year_lists["MEE_year_4"].append(student_roll_no4)
+        elif student_roll_no4[8:11] == 'RAE':
+            student_year_lists["RAE_year_4"].append(student_roll_no4)
+        else:
+            print("Error")
+
     return student_year_lists
 
-students_data = student_classification(first_year_students, second_year_students, third_year_students, student_year_lists)
+students_data = student_classification(first_year_students, second_year_students, third_year_students, fourth_year_students, student_year_lists)
+
 
 def seating_arrangement(classes, students_data):
     random.seed(42)
