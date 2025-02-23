@@ -116,93 +116,15 @@ for reg_no in df["Roll No"]:
         print("Error...")
 
 def student_classification(first_year_students, second_year_students, third_year_students, fourth_year_students, student_year_lists):
-    for student_roll_no1 in first_year_students:
-        if student_roll_no1[8:11] == 'CSE':
-            student_year_lists["CSE_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'AIE':
-            student_year_lists["AIE_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'AID':
-            student_year_lists["AID_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'ECE':
-            student_year_lists["ECE_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'ELC':
-            student_year_lists["ELC_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'EAC':
-            student_year_lists["EAC_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'EEE':
-            student_year_lists["EEE_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'MEE':
-            student_year_lists["MEE_year_1"].append(student_roll_no1)
-        elif student_roll_no1[8:11] == 'RAE':
-            student_year_lists["RAE_year_1"].append(student_roll_no1)
-        else:
-            print("Error")
-
-    for student_roll_no2 in second_year_students:
-        if student_roll_no2[8:11] == 'CSE':
-            student_year_lists["CSE_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'AIE':
-            student_year_lists["AIE_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'AID':
-            student_year_lists["AID_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'ECE':
-            student_year_lists["ECE_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'ELC':
-            student_year_lists["ELC_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'EAC':
-            student_year_lists["EAC_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'EEE':
-            student_year_lists["EEE_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'MEE':
-            student_year_lists["MEE_year_2"].append(student_roll_no2)
-        elif student_roll_no2[8:11] == 'RAE':
-            student_year_lists["RAE_year_2"].append(student_roll_no2)
-        else:
-            print("Error")
-
-    for student_roll_no3 in third_year_students:
-        if student_roll_no3[8:11] == 'CSE':
-            student_year_lists["CSE_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'AIE':
-            student_year_lists["AIE_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'AID':
-            student_year_lists["AID_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'ECE':
-            student_year_lists["ECE_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'ELC':
-            student_year_lists["ELC_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'EAC':
-            student_year_lists["EAC_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'EEE':
-            student_year_lists["EEE_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'MEE':
-            student_year_lists["MEE_year_3"].append(student_roll_no3)
-        elif student_roll_no3[8:11] == 'RAE':
-            student_year_lists["RAE_year_3"].append(student_roll_no3)
-        else:
-            print("Error")
-
-    for student_roll_no4 in fourth_year_students:
-        if student_roll_no4[8:11] == 'CSE':
-            student_year_lists["CSE_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'AIE':
-            student_year_lists["AIE_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'AID':
-            student_year_lists["AID_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'ECE':
-            student_year_lists["ECE_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'ELC':
-            student_year_lists["ELC_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'EAC':
-            student_year_lists["EAC_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'EEE':
-            student_year_lists["EEE_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'MEE':
-            student_year_lists["MEE_year_4"].append(student_roll_no4)
-        elif student_roll_no4[8:11] == 'RAE':
-            student_year_lists["RAE_year_4"].append(student_roll_no4)
-        else:
-            print("Error")
+    for student_roll_no in first_year_students:
+        student_year_lists[f"{student_roll_no[8:11]}_year_1"].append(student_roll_no)
+    for student_roll_no in second_year_students:
+        student_year_lists[f"{student_roll_no[8:11]}_year_2"].append(student_roll_no)
+    for student_roll_no in third_year_students:
+        student_year_lists[f"{student_roll_no[8:11]}_year_3"].append(student_roll_no)
+    for student_roll_no in fourth_year_students:
+        student_year_lists[f"{student_roll_no[8:11]}_year_4"].append(student_roll_no)
+    return student_year_lists
 
     return student_year_lists
 
@@ -464,8 +386,8 @@ seating_gui(arrangement, classrooms_content, classes, exam_info)
 def attendance_sheet(classrooms_content, df):
     attendance_data = {}
     for index, row in df.iterrows():
-        reg_no = row.get("Registration numbers")
-        name = row.get("Name")
+        reg_no = row.get("Roll No")
+        name = row.get("Name")  
         if reg_no and name:
             attendance_data[reg_no] = name
 
