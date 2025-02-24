@@ -18,6 +18,8 @@ total_benches = columns * benches
 sections = ['CSE', 'AIE', 'AID', 'ECE', 'EEE', 'EAC', 'ELC', 'MEE', 'RAE']
 
 df = pd.read_excel("Subjects (2).xlsx", sheet_name="names")
+df_morning = pd.read_excel("Mid Sem.xlsx", sheet_name="Morning")
+df_afternoon = pd.read_excel("Mid Sem.xlsx", sheet_name="Afternoon")
 
 first_year_students = []
 second_year_students = []
@@ -68,24 +70,6 @@ def exam_details():
         print("ERROR")
         exit(1)
 
-    time_slot = input("Enter the time slot for the exams (1 - Morning , 2 - Afternoon): ")
-    if exam_type == "Mid Sem":
-        if time_slot == "1":
-            time_slot = "09:30 AM to 11:30 AM"
-        elif time_slot == "2":
-            time_slot = "01:30 PM to 03:30 PM"
-        else:
-            print("ERROR")
-    elif exam_type == "End Sem":
-        if time_slot == "1":
-            time_slot = "09:30 AM to 12:30 PM"
-        elif time_slot == "2":
-            time_slot = "01:30 PM to 04:30 PM"
-        else:
-            print("ERROR")
-    else:
-        print("ERROR")
-
     return {
         "college_name": "Amrita Vishwa Vidyapeetham, Bengaluru Campus",
         "report_title": "ATTENDANCE & ROOM SUPERINTENDENT'S REPORT",
@@ -94,11 +78,16 @@ def exam_details():
         'sem_type': sem_type,
         'academic_year': academic_year,
         'exam_type': exam_type,
-        "time_slot": time_slot,
         'month_details': exam_month
     }
 
-exam_info = exam_details()
+def get_exam_info(session):
+    exam_info = exam_details()
+    exam_info['time_slot'] = "9:00 AM - 12:00 PM" if session == "Morning" else "1:00 PM - 4:00 PM"
+    return exam_info
+
+morning_exam_info = get_exam_info("Morning")
+afternoon_exam_info = get_exam_info("Afternoon")
 
 # This input is used to get the current year from the user to determine the first, second and third year students
 current_year = input("Enter the current year: ")
@@ -126,14 +115,110 @@ def student_classification(first_year_students, second_year_students, third_year
         student_year_lists[f"{student_roll_no[8:11]}_year_4"].append(student_roll_no)
     return student_year_lists
 
-    return student_year_lists
-
 students_data = student_classification(first_year_students, second_year_students, third_year_students, fourth_year_students, student_year_lists)
 
+def get_exam_schedule_until_date(df, target_date):
+    exam_schedule = {}
+    for index, row in df.iterrows():
+        exam_date = row['Date']
+        if exam_date <= target_date:
+            exam_schedule[index] = {
+                'Subject Name': row['Subject Name'],
+                'Subject Code': row['Subject Code'],
+                'Date': exam_date.strftime("%d-%m-%Y")
+            }
+        else:
+            break
+    return exam_schedule
 
-def seating_arrangement(classes, students_data):
+target_date = input("Enter the target date (YYYY-MM-DD): ")
+target_date = pd.to_datetime(target_date)
+
+morning_schedule = get_exam_schedule_until_date(df_morning, target_date)
+afternoon_schedule = get_exam_schedule_until_date(df_afternoon, target_date)
+
+print("Morning Schedule:")
+print(morning_schedule)
+print("Afternoon Schedule:")
+print(afternoon_schedule)
+
+def get_course_exam_details(schedule):
+    if schedule:
+        return list(schedule.values())[0]
+    return None
+
+morning_exam_details = get_course_exam_details(morning_schedule)
+afternoon_exam_details = get_course_exam_details(afternoon_schedule)
+
+if morning_exam_details:
+    print(f"Morning Exam Details: {morning_exam_details}")
+if afternoon_exam_details:
+    print(f"Afternoon Exam Details: {afternoon_exam_details}")
+
+def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    today_date = datetime.today().strftime("%d-%m-%Y")
+    college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
+    current_year = datetime.today().strftime("%Y")
+
+    for capacity, details in classes.items():
+        for classroom_index, classroom in enumerate(details['classrooms_list']):
+            if capacity == "40_capacity" or classroom_index % 2 == 0:
+                pdf.add_page()
+            pdf.set_font("Arial", size=16, style='B')  
+            pdf.cell(200, 10, txt=college_name, ln=True, align='C')
+            pdf.set_font("Arial", size=12, style='B')  
+            pdf.cell(200, 10, txt=f"Seating Arrangement for {exam_info['sub_title']} - {exam_info['month_details']} {current_year}", ln=True, align='C')
+            pdf.set_font("Arial", size=12, style='B')
+
+            pdf.set_font("Arial", size=16, style='B')
+            pdf.cell(200, 10, txt=f"Classroom {classroom}", ln=True, align='C')
+            pdf.set_font("Arial", size=12, style='B')
+
+            if capacity == "36_capacity":
+                table_width = details['columns'] * 30
+                cell_width = 30
+                font_size = 8
+            else:
+                table_width = details['columns'] * 35
+                cell_width = 35
+                font_size = 10
+            start_x = (210 - table_width) / 2
+
+            pdf.set_x(start_x)
+            for col in range(details['columns']):
+                if col == 0:
+                    pdf.cell(cell_width, 6, txt=f"Date: {today_date}", border=0, align='C')
+                elif col == details['columns'] - 1:
+                    pdf.cell(cell_width, 6, txt="Door Side", border=0, align='C')
+                else:
+                    pdf.cell(cell_width, 6, txt="", border=0)
+            pdf.ln()
+
+            pdf.set_x(start_x)
+            for col in range(details['columns']):
+                pdf.cell(cell_width, 6, txt=f"Column {col + 1}", border=1, align='C')
+            pdf.ln()
+
+            pdf.set_font("Arial", size=font_size, style='B')
+            for row in range(details['rows']):
+                pdf.set_x(start_x)
+                for col in range(details['columns']):
+                    seat = arrangement[capacity][classroom_index][col][row]
+                    pdf.cell(cell_width, 12, txt=seat if seat else "EMPTY", border=1, align='C')
+                pdf.ln()
+            pdf.ln()
+
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, date)
+    os.makedirs(downloads_path, exist_ok=True)
+    pdf.output(os.path.join(downloads_path, "seating_arrangement.pdf"))
+    print(f"PDF saved to {downloads_path}")
+
+def seating_arrangement_for_course(classes, students_data, course):
     random.seed(42)
-    active_courses = {k: v for k, v in students_data.items() if v and len(v) > 0}
+    active_courses = {k: v for k, v in students_data.items() if k.startswith(course) and v and len(v) > 0}
     active_course_names = list(active_courses.keys())
     random.shuffle(active_course_names)
 
@@ -141,6 +226,7 @@ def seating_arrangement(classes, students_data):
     for name in active_course_names:
         all_students.extend(active_courses[name])
 
+    total_students = len(all_students)
     bench_count = 0
     student_index = 0
     empty_seats = []
@@ -154,7 +240,8 @@ def seating_arrangement(classes, students_data):
         ]
 
     for capacity, details in classes.items():
-        for classroom_index, classroom_name in enumerate(details['classrooms_list']):
+        required_classrooms = (total_students + details['benches'] - 1) // details['benches']
+        for classroom_index, classroom_name in enumerate(details['classrooms_list'][:required_classrooms]):
             classrooms_content[f"classroom_{classroom_name}"] = []
             current_column = 0
             while current_column < details['columns']:
@@ -198,7 +285,6 @@ def seating_arrangement(classes, students_data):
         if arrangement[seat[0]][seat[1]][seat[2]][seat[3]] == "EMPTY"
     ]
 
-    total_students = len(all_students)
     seated_students = total_students - len(all_students[student_index:])
     non_seated_students = total_students - seated_students
 
@@ -207,22 +293,20 @@ def seating_arrangement(classes, students_data):
 
     return arrangement, classrooms_content
 
-def classroom_data(classrooms_content):
-    print()
-    for classroom, students in classrooms_content.items():
-        num_students = len(students)
-        class_counts = {}
-        for student in students:
-            class_name = student[8:11]
-            year = student[11:13]
-            key = f"{class_name}_year_{year}"
-            if key in class_counts:
-                class_counts[key] += 1
-            else:
-                class_counts[key] = 1
+def generate_seating_arrangement(exam_details, session, exam_info):
+    if exam_details:
+        course_input = input(f"Which course is writing {exam_details['Subject Name']} on the {exam_details['Date']}: ")
+        print(f"Generating seating arrangement for {session} session...")
+        arrangement, classrooms_content = seating_arrangement_for_course(classes, students_data, course_input)
+        save_seating_arrangement_pdf(arrangement, classes, exam_info, session, exam_details['Date'])
+        return classrooms_content
+    return {}
 
-arrangement, classrooms_content = seating_arrangement(classes, students_data)
-classroom_data(classrooms_content)
+morning_classrooms_content = generate_seating_arrangement(morning_exam_details, "Morning", morning_exam_info)
+afternoon_classrooms_content = generate_seating_arrangement(afternoon_exam_details, "Afternoon", afternoon_exam_info)
+
+# Combine morning and afternoon classrooms content
+combined_classrooms_content = {**morning_classrooms_content, **afternoon_classrooms_content}
 
 def save_as_pdf(arrangement, classes, exam_info):
     pdf = FPDF()
@@ -381,8 +465,6 @@ def seating_gui(arrangement, classrooms_content, classes, exam_info):
 
     root.mainloop()
 
-seating_gui(arrangement, classrooms_content, classes, exam_info)
-
 def attendance_sheet(classrooms_content, df):
     attendance_data = {}
     for index, row in df.iterrows():
@@ -401,7 +483,7 @@ def attendance_sheet(classrooms_content, df):
                 attendance_sheet_data[classroom].append((name, student))
     return attendance_sheet_data
 
-attendance_data = attendance_sheet(classrooms_content, df)
+attendance_data = attendance_sheet(combined_classrooms_content, df)
 
 def pdf_attendance_sheet(attendance_data, exam_info):
     pdf = FPDF()
@@ -500,7 +582,7 @@ def pdf_attendance_sheet(attendance_data, exam_info):
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
-def attendance_sheet_gui(attendance_data):
+def attendance_sheet_gui(attendance_data, exam_info):
     root = tk.Tk()
     root.title("Attendance Sheet")
     root.state("zoomed")
@@ -591,8 +673,6 @@ def attendance_sheet_gui(attendance_data):
     canvas.configure(scrollregion=canvas.bbox("all"))
     root.mainloop()
 
-attendance_sheet_gui(attendance_data)
-
 def print_classroom_details(classrooms_content, student_year_lists):
     course_year_to_classrooms = {}
     for course_year, students_list in student_year_lists.items():
@@ -624,6 +704,28 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info):
     academic_year_text = f"ACADEMIC YEAR {academic_year} SEATING ARRANGEMENT FOR {exam_info['exam_type'].upper()}/SUPPLEMENTARY EXAMS - {exam_info['month_details'].upper()} {current_year}"
     pdf.set_font("Arial", size=10,style='B')
     pdf.cell(200, 10, txt=safe_text(academic_year_text), ln=True, align='C')
+
+    pdf.cell(200, 10, txt=safe_text("Classroom Details"), ln=True, align='C')
+
+    column_headers = ["Room No", "University Registration Number", "Branch", "Total"]
+    column_widths = [50, 80, 40, 20]
+    start_x = (210 - sum(column_widths)) / 2
+
+    current_course = None
+    for course_year, classroom_dict in course_year_to_classrooms.items():
+        course_display = f"{course_year.split('_')[0]} - {course_year.split('_')[2]}"
+        if course_display != current_course:
+            pdf.ln(5)
+            pdf.set_font("Arial", size=10, style='B')
+            pdf.cell(200, 10, txt=safe_text(course_display), ln=True, align='C')
+            pdf.set_x(start_x)
+            for i, header in enumerate(column_headers):
+                pdf.cell(column_widths[i], 8, txt=safe_text(header), border=1, align='C')
+            pdf.ln()
+            current_course = course_display
+
+        for classroom_name, studs in classroom_dict.items():
+            pdf.set_x(start_x)
 
     pdf.cell(200, 10, txt=safe_text("Classroom Details"), ln=True, align='C')
 
@@ -710,6 +812,9 @@ def display_classroom_details_gui(classrooms_content, student_year_lists, exam_i
     tree.tag_configure("course_year", font=("Arial", 12, "bold"), anchor="center", background="lightblue")
 
     root.mainloop()
+    
+attendance_data = attendance_sheet(combined_classrooms_content, df)
+attendance_sheet_gui(attendance_data, morning_exam_info)
 
-print_classroom_details(classrooms_content, student_year_lists)
-display_classroom_details_gui(classrooms_content, student_year_lists, exam_info)
+print_classroom_details(combined_classrooms_content, student_year_lists)
+display_classroom_details_gui(combined_classrooms_content, student_year_lists, morning_exam_info)
