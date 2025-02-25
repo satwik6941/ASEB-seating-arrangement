@@ -81,13 +81,16 @@ def exam_details():
         'month_details': exam_month
     }
 
-def get_exam_info(session):
-    exam_info = exam_details()
+def get_exam_info(session, exam_details):
+    exam_info = exam_details.copy()
     exam_info['time_slot'] = "9:00 AM - 12:00 PM" if session == "Morning" else "1:00 PM - 4:00 PM"
     return exam_info
 
-morning_exam_info = get_exam_info("Morning")
-afternoon_exam_info = get_exam_info("Afternoon")
+# Get exam details once
+exam_details_data = exam_details()
+
+morning_exam_info = get_exam_info("Morning", exam_details_data)
+afternoon_exam_info = get_exam_info("Afternoon", exam_details_data)
 
 # This input is used to get the current year from the user to determine the first, second and third year students
 current_year = input("Enter the current year: ")
@@ -133,6 +136,8 @@ def get_exam_schedule_until_date(df, target_date):
 
 target_date = input("Enter the target date (YYYY-MM-DD): ")
 target_date = pd.to_datetime(target_date)
+
+show_gui = input("Do you want to see the GUI? (yes/no): ").strip().lower()
 
 morning_schedule = get_exam_schedule_until_date(df_morning, target_date)
 afternoon_schedule = get_exam_schedule_until_date(df_afternoon, target_date)
@@ -298,15 +303,11 @@ def generate_seating_arrangement(exam_details, session, exam_info):
         course_input = input(f"Which course is writing {exam_details['Subject Name']} on the {exam_details['Date']}: ")
         print(f"Generating seating arrangement for {session} session...")
         arrangement, classrooms_content = seating_arrangement_for_course(classes, students_data, course_input)
+        base_folder = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, exam_details['Date'])
+        os.makedirs(base_folder, exist_ok=True)
         save_seating_arrangement_pdf(arrangement, classes, exam_info, session, exam_details['Date'])
-        return classrooms_content
-    return {}
-
-morning_classrooms_content = generate_seating_arrangement(morning_exam_details, "Morning", morning_exam_info)
-afternoon_classrooms_content = generate_seating_arrangement(afternoon_exam_details, "Afternoon", afternoon_exam_info)
-
-# Combine morning and afternoon classrooms content
-combined_classrooms_content = {**morning_classrooms_content, **afternoon_classrooms_content}
+        return classrooms_content, base_folder
+    return {}, ""
 
 def save_as_pdf(arrangement, classes, exam_info):
     pdf = FPDF()
@@ -483,9 +484,7 @@ def attendance_sheet(classrooms_content, df):
                 attendance_sheet_data[classroom].append((name, student))
     return attendance_sheet_data
 
-attendance_data = attendance_sheet(combined_classrooms_content, df)
-
-def pdf_attendance_sheet(attendance_data, exam_info):
+def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
@@ -508,36 +507,31 @@ def pdf_attendance_sheet(attendance_data, exam_info):
         pdf.add_page()
 
         pdf.image(bw_image_path, 10, 5, 20)
-
-        pdf.set_font("Times", style='B', size=12)
-        pdf.set_xy(10, 30)  # Set the position for the college name
-        pdf.cell(190, 6, safe_text(college_name), ln=True, align='C')
-
-        pdf.set_font("Arial", style='BU', size=9)
-        pdf.set_xy(10, 40)  # Set the position for the report title
-        pdf.cell(190, 5, safe_text(report_title), ln=True, align='C')
-
-        pdf.set_font("Arial", style='B', size=9)
-        pdf.set_xy(10, 50)  # Set the position for the sub title
-        pdf.cell(190, 5, safe_text(sub_title), ln=True, align='C')
-
-        pdf.set_xy(10, 60)  # Set the position for the semester and exam details
-        pdf.cell(190, 5, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')
+        
+        pdf.set_y(5)  
+        
+        pdf.set_font("Times", style='B', size=16)
+        pdf.cell(210, 10, safe_text(college_name), ln=True, align='C')
+        
+        pdf.set_font("Arial", style='BU', size=12)
+        pdf.cell(210, 6, safe_text(report_title), ln=True, align='C') 
+        
+        pdf.set_font("Arial", style='B', size=12)
+        pdf.cell(210, 6, safe_text(sub_title), ln=True, align='C') 
+        
+        pdf.cell(210, 6, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')  # Reduced height from 8 to 6
 
         actual_classroom_name = classroom.replace("classroom_", "")
-        pdf.ln(2)
-        pdf.set_font("Arial", style='B', size=9)
-        pdf.cell(0, 7, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')
+        pdf.set_font("Arial", style='B', size=12)
+        pdf.cell(0, 8, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')  
 
-        pdf.set_xy(100, pdf.get_y())
+        pdf.set_font("Arial", size=10, style='B')
+        pdf.set_xy(160, pdf.get_y())
+        pdf.cell(40, 8, f"Date: {date_str}    Time: {time_slot}", ln=True, align='R') 
+
         pdf.set_font("Arial", size=8, style='B')
-        pdf.cell(55, 5, f"Date : {date_str}", border=0, align='C')  
-        pdf.cell(55, 5, f"Time : {time_slot}", border=0, align='C')  
-        pdf.ln(7)
-
-        pdf.set_font("Arial", size=8, style='B') 
         column_widths = [15, 50, 70, 30, 35]
-        row_height = 6  
+        row_height = 6
         start_x = (210 - sum(column_widths)) / 2
         pdf.set_x(start_x)
         headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
@@ -545,40 +539,39 @@ def pdf_attendance_sheet(attendance_data, exam_info):
             pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
         pdf.ln(row_height)
 
-        pdf.set_font("Arial", size=8)  
+        pdf.set_font("Arial", size=8)
         for idx, (name, reg_no) in enumerate(students, start=1):
             pdf.set_x(start_x)
             pdf.cell(column_widths[0], row_height, str(idx), border=1, align='C')
             pdf.cell(column_widths[1], row_height, reg_no, border=1, align='C')
             if len(name) > 30:
-                pdf.set_font("Arial", size=7)  
+                pdf.set_font("Arial", size=7)
                 pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
-                pdf.set_font("Arial", size=8)  
+                pdf.set_font("Arial", size=8)
             else:
                 pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
             pdf.cell(column_widths[3], row_height, "", border=1, align='C')
             pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
 
-        pdf.ln(7)
         summary_width = 60
-        summary_height = 18  
+        summary_height = 18
         total_width = summary_width * 3
         start_x = (210 - total_width) / 2
         current_y = pdf.get_y()
 
         pdf.set_xy(start_x, current_y)
-        pdf.set_font("Arial", size=7)  
+        pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n", border=1, align='L')
 
         pdf.set_xy(start_x + summary_width, current_y)
-        pdf.set_font("Arial", size=7)  
+        pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n", border=1, align='L')
 
         pdf.set_xy(start_x + 2 * summary_width, current_y)
-        pdf.set_font("Arial", size=7)  
-        pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams", border=1, align='L')
+        pdf.set_font("Arial", size=7)
+        pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams\n\n", border=1, align='L')
 
-    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "attendance_sheet.pdf")
+    downloads_path = os.path.join(base_folder, "attendance_sheet.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
@@ -682,8 +675,9 @@ def print_classroom_details(classrooms_content, student_year_lists):
                 if course_year not in course_year_to_classrooms:
                     course_year_to_classrooms[course_year] = {}
                 course_year_to_classrooms[course_year][classroom] = intersection
+    return course_year_to_classrooms
 
-def pdf_classroom_details(course_year_to_classrooms, exam_info): 
+def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
 
@@ -726,28 +720,6 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info):
 
         for classroom_name, studs in classroom_dict.items():
             pdf.set_x(start_x)
-
-    pdf.cell(200, 10, txt=safe_text("Classroom Details"), ln=True, align='C')
-
-    column_headers = ["Room No", "University Registration Number", "Branch", "Total"]
-    column_widths = [50, 80, 40, 20]
-    start_x = (210 - sum(column_widths)) / 2
-
-    current_course = None
-    for course_year, classroom_dict in course_year_to_classrooms.items():
-        course_display = f"{course_year.split('_')[0]} - {course_year.split('_')[2]}"
-        if course_display != current_course:
-            pdf.ln(5)
-            pdf.set_font("Arial", size=10, style='B')
-            pdf.cell(200, 10, txt=safe_text(course_display), ln=True, align='C')
-            pdf.set_x(start_x)
-            for i, header in enumerate(column_headers):
-                pdf.cell(column_widths[i], 8, txt=safe_text(header), border=1, align='C')
-            pdf.ln()
-            current_course = course_display
-
-        for classroom_name, studs in classroom_dict.items():
-            pdf.set_x(start_x)
             roll_range = f"{studs[0]} to {studs[-1]}" if len(studs) > 1 else studs[0]
             branch = studs[0][8:11] if studs else ""
             total_count = len(studs)
@@ -756,7 +728,7 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info):
                 pdf.cell(column_widths[i], 8, txt=safe_text(val), border=1, align='C')
             pdf.ln()
 
-    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "classroom_details.pdf")
+    downloads_path = os.path.join(base_folder, "classroom_details.pdf")
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
@@ -812,9 +784,34 @@ def display_classroom_details_gui(classrooms_content, student_year_lists, exam_i
     tree.tag_configure("course_year", font=("Arial", 12, "bold"), anchor="center", background="lightblue")
 
     root.mainloop()
-    
-attendance_data = attendance_sheet(combined_classrooms_content, df)
-attendance_sheet_gui(attendance_data, morning_exam_info)
 
-print_classroom_details(combined_classrooms_content, student_year_lists)
-display_classroom_details_gui(combined_classrooms_content, student_year_lists, morning_exam_info)
+morning_classrooms_content, base_folder_morning = generate_seating_arrangement(morning_exam_details, "Morning", morning_exam_info)
+afternoon_classrooms_content, base_folder_afternoon = generate_seating_arrangement(afternoon_exam_details, "Afternoon", afternoon_exam_info)
+
+if morning_classrooms_content:
+    morning_attendance_data = attendance_sheet(morning_classrooms_content, df)
+    pdf_attendance_sheet(morning_attendance_data, morning_exam_info, base_folder_morning)
+    course_year_to_classrooms_morning = print_classroom_details(morning_classrooms_content, student_year_lists)
+    pdf_classroom_details(course_year_to_classrooms_morning, morning_exam_info, base_folder_morning)
+    print(f"Morning exam PDFs generated in {base_folder_morning}")
+
+if afternoon_classrooms_content:
+    afternoon_attendance_data = attendance_sheet(afternoon_classrooms_content, df)
+    pdf_attendance_sheet(afternoon_attendance_data, afternoon_exam_info, base_folder_afternoon)
+    course_year_to_classrooms_afternoon = print_classroom_details(afternoon_classrooms_content, student_year_lists)
+    pdf_classroom_details(course_year_to_classrooms_afternoon, afternoon_exam_info, base_folder_afternoon)
+    print(f"Afternoon exam PDFs generated in {base_folder_afternoon}")
+
+if show_gui == "yes":
+    print("Showing GUIs...")
+    if morning_classrooms_content:
+        print("Showing Morning Session GUI...")
+        attendance_sheet_gui(morning_attendance_data, morning_exam_info)
+        display_classroom_details_gui(morning_classrooms_content, student_year_lists, morning_exam_info)
+    
+    if afternoon_classrooms_content:
+        print("Showing Afternoon Session GUI...")
+        attendance_sheet_gui(afternoon_attendance_data, afternoon_exam_info)
+        display_classroom_details_gui(afternoon_classrooms_content, student_year_lists, afternoon_exam_info)
+else:
+    print("GUIs not shown. All PDFs have been saved successfully.")
