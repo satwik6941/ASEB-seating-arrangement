@@ -1,7 +1,5 @@
 import pandas as pd
 import random
-import tkinter as tk
-from tkinter import ttk
 from fpdf import FPDF
 from datetime import datetime
 from PIL import Image
@@ -393,164 +391,6 @@ def generate_seating_arrangement(exam_details, session, exam_info, courses_list)
         return classrooms_content, base_folder
     return {}, ""
 
-def save_as_pdf(arrangement, classes):
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=10, style='B')
-    today_date = datetime.today().strftime("%d/%m/%Y")
-    college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
-
-    pdf.add_page()
-    pdf.set_font("Arial", size=14, style='B')
-    pdf.cell(200, 10, txt=college_name, ln=True, align='C')
-    pdf.cell(200, 10, txt="Seating Arrangement", ln=True, align='C')
-    pdf.cell(200, 10, txt=f"Date: {today_date}", ln=True, align='C')
-    pdf.set_font("Arial", size=12, style='B')
-
-    for capacity, details in classes.items():
-        for classroom_index, classroom in enumerate(details['classrooms_list']):
-            if classroom_index % 2 == 0:
-                pdf.add_page()
-
-            pdf.set_font("Arial", size=16, style='B')
-            pdf.cell(200, 10, txt=f"Classroom {classroom}", ln=True, align='C')
-            pdf.set_font("Arial", size=12, style='B')
-
-            if capacity == "36_capacity":
-                table_width = details['columns'] * 30
-                cell_width = 30
-                font_size = 8
-            else:
-                table_width = details['columns'] * 35
-                cell_width = 35
-                font_size = 10
-            start_x = (210 - table_width) / 2
-
-            pdf.set_x(start_x)
-            for col in range(details['columns']):
-                if col == 0:
-                    pdf.cell(cell_width, 6, txt=f"Date: {today_date}", border=0, align='C')
-                elif col == details['columns'] - 1:
-                    pdf.cell(cell_width, 6, txt="Door Side", border=0, align='C')
-                else:
-                    pdf.cell(cell_width, 6, txt="", border=0)
-            pdf.ln()
-
-            pdf.set_x(start_x)
-            for col in range(details['columns']):
-                pdf.cell(cell_width, 6, txt=f"Column {col + 1}", border=1, align='C')
-            pdf.ln()
-
-            pdf.set_font("Arial", size=font_size, style='B')
-            for row in range(details['rows']):
-                pdf.set_x(start_x)
-                for col in range(details['columns']):
-                    seat = arrangement[capacity][classroom_index][col][row]
-                    pdf.cell(cell_width, 12, txt=seat if seat else "EMPTY", border=1, align='C')
-                pdf.ln()
-            pdf.ln()
-
-    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "seating_arrangement.pdf")
-    pdf.output(downloads_path)
-    print(f"PDF saved to {downloads_path}")
-
-def seating_gui(arrangement, classrooms_content, classes, exam_info):
-    root = tk.Tk()
-    root.title("Seating Arrangement")
-    root.state("zoomed")
-
-    canvas = tk.Canvas(root)
-    scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
-    scrollable_frame = ttk.Frame(canvas)
-
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
-
-    save_button = ttk.Button(root, text="Save as PDF", command=lambda: save_as_pdf(arrangement, classes, exam_info))
-    save_button.pack(side="top", anchor="ne", padx=10, pady=10)
-
-    title_font = ("Arial", 28, "bold")
-    subtitle_font = ("Arial", 18, "bold")
-    classroom_font = ("Arial", 30, "bold")
-    header_font = ("Arial", 16, "bold")
-    seat_font = ("Arial", 14, "bold")
-
-    college_name = "Amrita Vishwa Vidyapeetham, Bengaluru Campus"
-    today_date = datetime.today().strftime("%d/%m/%Y")
-    current_year = datetime.today().strftime("%Y")
-
-    total_students = 0
-    row_counter = 0
-    capacities_order = ["35_capacity", "40_capacity", "36_capacity"]
-    for capacity in capacities_order:
-        details = classes[capacity]
-        for classroom_index, classroom in enumerate(details['classrooms_list']):
-            frame = tk.Frame(scrollable_frame, pady=20)
-            frame.grid(row=row_counter, column=0, padx=50, pady=10, sticky="nsew")
-            row_counter += 1
-
-            tk.Label(frame, text=college_name, font=title_font, anchor="center").pack()
-            tk.Label(frame, text=f"Seating Arrangement for {exam_info['sub_title']} - {exam_info['month_details']} {current_year}", font=subtitle_font, anchor="center").pack(pady=5)
-
-            room_label = tk.Label(frame, text=f"Room No.: {classroom}", font=classroom_font, anchor="center")
-            room_label.pack(pady=10)
-
-            seating_frame = tk.Frame(frame)
-            seating_frame.pack(fill="both", expand=True)
-
-            for col in range(details['columns']):
-                if col == 0:
-                    date_label = tk.Label(seating_frame, text=f"Date: {today_date}", font=header_font, borderwidth=1, relief="solid", anchor="center")
-                    date_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
-                elif col == details['columns'] - 1:
-                    door_side_label = tk.Label(seating_frame, text="Door Side", font=header_font, borderwidth=1, relief="solid", anchor="center")
-                    door_side_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
-                elif capacity == "36_capacity" and col == 5:
-                    door_side_label = tk.Label(seating_frame, text="Door Side", font=header_font, borderwidth=1, relief="solid", anchor="center")
-                    door_side_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
-                else:
-                    empty_label = tk.Label(seating_frame, text="", font=header_font, anchor="center")
-                    empty_label.grid(row=0, column=col, padx=5, pady=5, sticky="nsew")
-
-            for col in range(details['columns']):
-                col_label = tk.Label(seating_frame, text=f"Column {col + 1}", font=header_font, borderwidth=1, relief="solid", anchor="center")
-                col_label.grid(row=1, column=col, padx=5, pady=5, sticky="nsew")
-
-            for row in range(details['rows']):
-                for col in range(details['columns']):
-                    seat = arrangement[capacity][classroom_index][col][row]
-                    seat_label = tk.Label(
-                        seating_frame,
-                        text=seat if seat else "EMPTY",
-                        font=seat_font,
-                        borderwidth=1,
-                        relief="solid",
-                        anchor="center"
-                    )
-                    seat_label.grid(row=row + 2, column=col, padx=5, pady=5, sticky="nsew")
-                    if seat and seat != "EMPTY":
-                        total_students += 1
-
-            for col in range(details['columns']):
-                seating_frame.columnconfigure(col, weight=1)
-            for row in range(details['rows'] + 2):
-                seating_frame.rowconfigure(row, weight=1)
-
-    total_students_label = tk.Label(scrollable_frame, text=f"Total Students Seated: {total_students}", font=subtitle_font, anchor="center")
-    total_students_label.grid(row=row_counter, column=0, pady=20)
-
-    scrollable_frame.columnconfigure(0, weight=1)
-
-    canvas.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
-
-    root.mainloop()
-
 def attendance_sheet(classrooms_content, df):
     attendance_data = {}
     for index, row in df.iterrows():
@@ -688,99 +528,13 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
     pdf.output(downloads_path)
     print(f"PDF saved to {downloads_path}")
 
-def attendance_sheet_gui(attendance_data, exam_info):
-    root = tk.Tk()
-    root.title("Attendance Sheet")
-    root.state("zoomed")
-
-    canvas = tk.Canvas(root)
-    scrollbar = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
-    canvas.configure(yscrollcommand=scrollbar.set)
-    scrollbar.pack(side="right", fill="y")
-    canvas.pack(side="left", fill="both", expand=True)
-
-    scrollable_frame = ttk.Frame(canvas)
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-
-    save_pdf_button = ttk.Button(root, text="Save as PDF", command=lambda: pdf_attendance_sheet(attendance_data, exam_info))
-    save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
-
-    basic = exam_info
-    sem_type = basic['sem_type']
-    exam_type = basic['exam_type']
-    college_name = basic["college_name"]
-    report_title = basic["report_title"]
-    sub_title = basic["sub_title"]
-    exam_details_text = basic["exam_details"]
-    exam_month = basic["month_details"]
-
-    current_year = datetime.today().strftime("%Y")
-    date_str = datetime.today().strftime("%d-%m-%Y")
-    time_slot = basic["time_slot"]
-
-    for classroom, students in attendance_data.items():
-        ttk.Label(scrollable_frame, text=college_name, font=("Times", 18, "bold")).pack(anchor="center")
-        ttk.Label(scrollable_frame, text=report_title, font=("Arial", 16, "bold")).pack(anchor="center", pady=5)
-        ttk.Label(scrollable_frame, text=sub_title, font=("Arial", 14)).pack(anchor="center")
-        ttk.Label(scrollable_frame, text=f"{sem_type} - {exam_type}. Exam - {exam_month}. {current_year}", font=("Arial", 12)).pack(anchor="center")
-
-        date_time_frame = ttk.Frame(scrollable_frame)
-        date_time_frame.pack(fill="x", padx=10, pady=5)
-
-        actual_classroom_name = classroom.replace("classroom_", "")
-        ttk.Label(date_time_frame, text=f"Room No. {actual_classroom_name}", font=("Arial", 32, "bold"), padding=10).pack(side="left", padx=10, pady=5)
-
-        ttk.Label(date_time_frame, text=f"Date: {date_str}", font=("Arial", 12)).pack(side="left", padx=10)
-        ttk.Label(date_time_frame, text=f"Time: {time_slot}", font=("Arial", 12)).pack(side="left", padx=10)
-
-        columns = ("S.No", "Register No.", "Name", "Booklet No.", "Signature")
-        tree = ttk.Treeview(scrollable_frame, columns=columns, show="headings")
-
-        for col in columns:
-            tree.heading(col, text=col, anchor="center")
-            tree.column(col, anchor="center")
-
-        for idx, (name, reg_no) in enumerate(students, start=1):
-            tree.insert("", "end", values=(idx, reg_no, name, "", ""))
-
-        tree.pack(fill="x", padx=10, pady=5)
-
-        summary_frame = ttk.Frame(scrollable_frame)
-        summary_frame.pack(fill="x", padx=10, pady=10)
-
-        ttk.Label(
-            summary_frame,
-            text="Total No of Students Present: __________\n\nTotal No of Students Absent: __________",
-            font=("Arial", 10),
-            borderwidth=1,
-            relief="solid",
-            padding=5
-        ).grid(row=0, column=0, sticky="nsew", padx=5)
-
-        ttk.Label(
-            summary_frame,
-            text="Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________",
-            font=("Arial", 10),
-            borderwidth=1,
-            relief="solid",
-            padding=5
-        ).grid(row=0, column=1, sticky="nsew", padx=5)
-
-        ttk.Label(
-            summary_frame,
-            text="Room Superintendent\n\nDeputy Controller of Exams",
-            font=("Arial", 10),
-            borderwidth=1,
-            relief="solid",
-            padding=5
-        ).grid(row=0, column=2, sticky="nsew", padx=5)
-
-    scrollable_frame.update_idletasks()
-    canvas.configure(scrollregion=canvas.bbox("all"))
-    root.mainloop()
-
 def print_classroom_details(classrooms_content, student_year_lists):
     course_year_to_classrooms = {}
+    print(f"Processing {len(classrooms_content)} classrooms")
+    
+    # Debug classrooms_content keys
+    print(f"Classroom keys: {list(classrooms_content.keys())[:5]}...")
+    
     for course_year, students_list in student_year_lists.items():
         for classroom, studs in classrooms_content.items():
             intersection = sorted(set(studs) & set(students_list))
@@ -788,11 +542,19 @@ def print_classroom_details(classrooms_content, student_year_lists):
                 if course_year not in course_year_to_classrooms:
                     course_year_to_classrooms[course_year] = {}
                 course_year_to_classrooms[course_year][classroom] = intersection
+                
+    print(f"Created course_year_to_classrooms with {len(course_year_to_classrooms)} branch-year entries")
+    # Print a sample of the data
+    if course_year_to_classrooms:
+        sample_key = next(iter(course_year_to_classrooms))
+        print(f"Sample data for {sample_key}: {len(course_year_to_classrooms[sample_key])} classrooms")
+    
     return course_year_to_classrooms
 
 def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
     """
-    Creates a PDF that shows classroom-wise student details for each subject.
+    Generate a PDF with detailed classroom assignments by branch and year.
+    Only includes students who are actually writing the specified exam based on course info.
     """
     from fpdf import FPDF
     from datetime import datetime
@@ -800,201 +562,216 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
 
+    # Extract basic info
     subject_codes = exam_info.get("Subject Code", "").split(" / ")
     subject_names = exam_info.get("Subject Name", "").split(" / ")
     session = "Morning" if "9:00" in exam_info.get("time_slot", "") else "Afternoon"
+    exam_courses = exam_info.get("courses", [])  # Courses writing this exam
+    
+    print(f"PDF Classroom Details - Filtering for courses: {exam_courses}")
+    print(f"Total branch-year keys before filtering: {len(course_year_to_classrooms)}")
     
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    total_students_overall = 0
-    found_any_students = False
-
-    for idx, (code, name) in enumerate(zip(subject_codes, subject_names)):
+    # Process all classrooms first to organize data
+    all_classroom_data = {}
+    branch_year_students = {}
+    total_students = 0
+    
+    # First, organize all students by classroom
+    for branch_year_key, classrooms_dict in course_year_to_classrooms.items():
+        parts = branch_year_key.split('_year_')
+        if len(parts) != 2:
+            continue
+            
+        branch = parts[0]
+        year = parts[1]
+        
+        # More flexible course matching - check both directions
+        should_include = True
+        if exam_courses:
+            should_include = False
+            for course in exam_courses:
+                if branch.startswith(course) or course.startswith(branch):
+                    should_include = True
+                    break
+        
+        if not should_include:
+            print(f"Skipping {branch_year_key} - not in exam courses {exam_courses}")
+            continue
+        else:
+            print(f"Including {branch_year_key} for courses {exam_courses}")
+        
+        # For each classroom assigned to this branch and year
+        for classroom_key, students in classrooms_dict.items():
+            room_name = classroom_key.replace("classroom_", "")
+            
+            if room_name not in all_classroom_data:
+                all_classroom_data[room_name] = []
+                
+            # Add each student with their branch and year info
+            for student_id in students:
+                if student_id == "EMPTY":
+                    continue
+                    
+                student_info = {
+                    "id": student_id,
+                    "branch": branch,
+                    "year": year
+                }
+                all_classroom_data[room_name].append(student_info)
+                
+                # Also track by branch and year
+                if branch_year_key not in branch_year_students:
+                    branch_year_students[branch_year_key] = []
+                branch_year_students[branch_year_key].append((room_name, student_id))
+                
+                total_students += 1
+    
+    print(f"Total students after filtering: {total_students}")
+    print(f"Rooms with data: {list(all_classroom_data.keys())}")
+    
+    if total_students == 0:
+        print(f"Warning: No students found for courses {exam_courses}. PDF will be empty.")
+        print("Check if course codes match with branch prefixes in student data.")
+        # Create a basic PDF with an error message
+        pdf.add_page()
+        pdf.set_font("Arial", size=14, style='B')
+        pdf.cell(0, 10, "No student data found", ln=True, align='C')
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, f"No students matched for courses: {', '.join(exam_courses)}", ln=True, align='C')
+        pdf.cell(0, 10, "Please check if the course codes match branch prefixes in student data", ln=True, align='C')
+        
+        filename = f"{session.lower()}_classroom_details.pdf"
+        filepath = os.path.join(base_folder, filename)
+        pdf.output(filepath)
+        print(f"Created empty PDF with warning message: {filepath}")
+        return
+    
+    # Now generate the PDF pages
+    for idx, (subject_code, subject_name) in enumerate(zip(subject_codes, subject_names)):
         pdf.add_page()
         
+        # Add heading
         pdf.set_font("Arial", size=14, style='B')
-        pdf.cell(0, 10, safe_text(f"Subject: {code} - {name}"), ln=True, align='C')
+        pdf.cell(0, 10, safe_text(f"Subject: {subject_code} - {subject_name}"), ln=True, align='C')
+        pdf.set_font("Arial", size=12, style='B')
+        pdf.cell(0, 10, safe_text(f"Date: {exam_info['Date']} - {exam_info['time_slot']}"), ln=True, align='C')
+        
+        # List the courses writing this exam
+        if exam_courses:
+            pdf.set_font("Arial", size=10)
+            pdf.cell(0, 8, safe_text(f"Courses: {', '.join(exam_courses)}"), ln=True, align='C')
+        
         pdf.ln(5)
         
-        headers = ["Room No", "Register No. Range", "Branch", "Year", "Count"]
-        col_widths = [35, 80, 25, 15, 20]
-        
+        # Add table headers
         pdf.set_font("Arial", size=10, style='B')
+        headers = ["Room No", "Branch", "Year", "Roll No. Range", "Count"]
+        col_widths = [30, 25, 20, 85, 20]
+        
         for h, w in zip(headers, col_widths):
             pdf.cell(w, 8, safe_text(h), border=1, align='C')
         pdf.ln()
-
-        subject_students_count = 0
-        pdf.set_font("Arial", size=10)
         
-        for course_year_key in sorted(course_year_to_classrooms.keys()):
-            # Parse the branch and year from the key (format: "CSE_year_1")
-            parts = course_year_key.split('_year_')
-            if len(parts) != 2:
-                continue
-            
-            branch = parts[0]
-            year = parts[1]
-            
-            classrooms_dict = course_year_to_classrooms[course_year_key]
-            
-            for classroom_name, students in sorted(classrooms_dict.items()):
-                if students:
-                    actual_room = classroom_name.replace("classroom_", "")
-                    students_sorted = sorted(students)
-                    roll_info = f"{students_sorted[0]} to {students_sorted[-1]}" if len(students_sorted) > 1 else students_sorted[0]
-                    
-                    pdf.cell(col_widths[0], 8, safe_text(actual_room), border=1, align='C')
-                    pdf.cell(col_widths[1], 8, safe_text(roll_info), border=1, align='C')
-                    pdf.cell(col_widths[2], 8, safe_text(branch), border=1, align='C')
-                    pdf.cell(col_widths[3], 8, safe_text(year), border=1, align='C')
-                    pdf.cell(col_widths[4], 8, str(len(students_sorted)), border=1, align='C')
-                    pdf.ln()
-                    subject_students_count += len(students_sorted)
-                    found_any_students = True
+        # Group by room and branch+year
+        room_branch_year_data = {}
         
+        for room_name, students in sorted(all_classroom_data.items()):
+            # Group students by branch and year in this room
+            by_branch_year = {}
+            for student in students:
+                key = f"{student['branch']}_{student['year']}"
+                if key not in by_branch_year:
+                    by_branch_year[key] = []
+                by_branch_year[key].append(student['id'])
+            
+            # Store grouped data
+            room_branch_year_data[room_name] = by_branch_year
+        
+        # Fill table with room data
+        pdf.set_font("Arial", size=9)
+        total_in_subject = 0
+        
+        for room_name in sorted(room_branch_year_data.keys()):
+            for branch_year_key, students in sorted(room_branch_year_data[room_name].items()):
+                if not students:
+                    continue
+                
+                branch, year = branch_year_key.split('_')
+                students_sorted = sorted(students)
+                roll_range = f"{students_sorted[0]} to {students_sorted[-1]}" if len(students_sorted) > 1 else students_sorted[0]
+                
+                pdf.cell(col_widths[0], 8, safe_text(room_name), border=1, align='C')
+                pdf.cell(col_widths[1], 8, safe_text(branch), border=1, align='C')
+                pdf.cell(col_widths[2], 8, safe_text(year), border=1, align='C')
+                pdf.cell(col_widths[3], 8, safe_text(roll_range), border=1, align='C')
+                pdf.cell(col_widths[4], 8, str(len(students_sorted)), border=1, align='C')
+                pdf.ln()
+                
+                total_in_subject += len(students_sorted)
+        
+        # Summary for this subject
         pdf.ln(5)
         pdf.set_font("Arial", style='B', size=10)
-        pdf.cell(0, 8, safe_text(f"Total for {code}: {subject_students_count}"), ln=True, align='C')
-        total_students_overall += subject_students_count
+        pdf.cell(0, 8, safe_text(f"Total students for {subject_code}: {total_in_subject}"), ln=True, align='C')
     
-    if not found_any_students:
-        pdf.add_page()
-        pdf.set_font("Arial", size=14, style='B')
-        pdf.cell(0, 10, "No classroom details found.", ln=True, align='C')
-    else:
-        pdf.ln(5)
-        pdf.set_font("Arial", style='B', size=10)
-        pdf.cell(0, 8, safe_text(f"Overall total: {total_students_overall}"), ln=True, align='C')
-
-    pdf.output(os.path.join(base_folder, f"{session.lower()}_classroom_details.pdf"))
-
-def display_classroom_details_gui(classrooms_content, student_year_lists, exam_info):
-    course_year_to_classrooms = {}
-    for course_year, students_list in student_year_lists.items():
-        for classroom, studs in classrooms_content.items():
-            intersection = sorted(set(studs) & set(students_list))
-            if intersection:
-                if course_year not in course_year_to_classrooms:
-                    course_year_to_classrooms[course_year] = {}
-                course_year_to_classrooms[course_year][classroom] = intersection
-
-    root = tk.Tk()
-    root.title("Classroom Details")
-    root.state("zoomed")
-
-    # Create tabs for each subject
-    notebook = ttk.Notebook(root)
-    notebook.pack(fill="both", expand=True)
+    # Overall summary page
+    pdf.add_page()
+    pdf.set_font("Arial", size=14, style='B')
+    pdf.cell(0, 10, safe_text("Summary by Branch and Year"), ln=True, align='C')
+    if exam_courses:
+        pdf.set_font("Arial", size=11)
+        pdf.cell(0, 8, safe_text(f"Courses: {', '.join(exam_courses)}"), ln=True, align='C')
+    pdf.ln(5)
     
-    subject_codes = exam_info.get("Subject Code", "N/A").split(" / ")
-    subject_names = exam_info.get("Subject Name", "N/A").split(" / ")
+    headers = ["Branch", "Year", "Rooms", "Student Count"]
+    col_widths = [30, 20, 90, 30]
     
-    # Create a mapping of branch codes to subject prefixes
-    branch_subject_mapping = {
-        "CSE": ["CS", "IS"],
-        "AIE": ["AI"],
-        "AID": ["AD", "DS"],
-        "ECE": ["EC"],
-        "EEE": ["EE"],
-        "EAC": ["AC"],
-        "ELC": ["LC"],
-        "MEE": ["ME"],
-        "RAE": ["RA"]
-    }
+    pdf.set_font("Arial", size=10, style='B')
+    for h, w in zip(headers, col_widths):
+        pdf.cell(w, 8, safe_text(h), border=1, align='C')
+    pdf.ln()
     
-    for subject_code, subject_name in zip(subject_codes, subject_names):
-        # Create a tab for this subject
-        subject_frame = ttk.Frame(notebook)
-        notebook.add(subject_frame, text=f"{subject_code}")
+    # Show summary for each branch and year
+    pdf.set_font("Arial", size=9)
+    for branch_year_key, room_students in sorted(branch_year_students.items()):
+        if not room_students:
+            continue
         
-        subject_header = f"Subject Code: {subject_code} | Subject Name: {subject_name}"
-        header_label = ttk.Label(subject_frame, text=subject_header, font=("Arial", 16, "bold"))
-        header_label.pack(pady=10)
+        parts = branch_year_key.split('_year_')
+        if len(parts) != 2:
+            continue
         
-        style = ttk.Style()
-        style.theme_use("default")
-        style.configure("Treeview", rowheight=25, highlightthickness=1, bd=1, relief="solid", font=("Arial", 10))
-        style.configure("Treeview.Heading", font=("Arial", 12, "bold"))
+        branch, year = parts
         
-        tree = ttk.Treeview(subject_frame, columns=("room_no", "reg_numbers", "branch", "year", "total"), show="headings")
-        tree.heading("room_no", text="Room No")
-        tree.heading("reg_numbers", text="University Registration Number")
-        tree.heading("branch", text="Branch")
-        tree.heading("year", text="Year")
-        tree.heading("total", text="Total")
-        tree.column("room_no", width=100, anchor="center")
-        tree.column("reg_numbers", width=300, anchor="center")
-        tree.column("branch", width=100, anchor="center")
-        tree.column("year", width=80, anchor="center")
-        tree.column("total", width=50, anchor="center")
-        tree.pack(fill="both", expand=True)
+        # Count students per room
+        rooms_dict = {}
+        for room, student_id in room_students:
+            if room not in rooms_dict:
+                rooms_dict[room] = 0
+            rooms_dict[room] += 1
         
-        # Extract subject prefix for filtering
-        subject_prefix = subject_code[:2].upper()
-        if subject_prefix in ["19", "20", "21"]:  # Handle curriculum code prefixes
-            subject_prefix = subject_code[5:7].upper()
+        # Format room list as "A301(15), A302(10), ..." where numbers are student counts
+        rooms_formatted = ", ".join([f"{r}({c})" for r, c in sorted(rooms_dict.items())])
         
-        common_subject_prefixes = ["MA", "PH", "CY", "HS", "ID", "GS", "CS"]
-        is_common_subject = subject_prefix in common_subject_prefixes
-        
-        total_students_subject = 0
-        
-        for branch, years_dict in sorted(course_year_to_classrooms.items()):
-            branch_code = branch.split('_')[0]
-            
-            should_show_branch = False
-            # For common subjects, show all branches
-            if is_common_subject:
-                should_show_branch = True
-            # For branch-specific subjects
-            elif any(code in subject_code.upper() for code in branch_subject_mapping.get(branch_code, [])):
-                should_show_branch = True
-            # Check if branch code is explicitly in the subject code
-            elif branch_code.upper() in subject_code.upper():
-                should_show_branch = True
-                
-            if not should_show_branch:
-                continue
-                
-            for year, classrooms in sorted(years_dict.items()):
-                for classroom_name, students in sorted(classrooms.items()):
-                    if not students:
-                        continue
-                        
-                    display_classroom = classroom_name.replace("classroom_", "")
-                    year_num = year.split('_')[1].replace('year_', '')
-                    
-                    students = sorted(students)
-                    roll_range = f"{students[0]} to {students[-1]}" if len(students) > 1 else students[0]
-                    
-                    tree.insert("", "end", values=(
-                        display_classroom,
-                        roll_range,
-                        branch_code,
-                        f"Year {year_num}",
-                        str(len(students))
-                    ))
-                    
-                    total_students_subject += len(students)
-        
-        total_label = ttk.Label(subject_frame, text=f"Total Students for {subject_code}: {total_students_subject}", 
-                              font=("Arial", 12, "bold"))
-        total_label.pack(pady=10)
-
-    save_pdf_button = ttk.Button(
-        root, 
-        text="Save as PDF",
-        command=lambda: pdf_classroom_details(
-            course_year_to_classrooms, 
-            exam_info, 
-            os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement")
-        )
-    )
-    save_pdf_button.pack(side="top", anchor="ne", padx=10, pady=10)
-
-    root.mainloop()
+        pdf.cell(col_widths[0], 8, safe_text(branch), border=1, align='C')
+        pdf.cell(col_widths[1], 8, safe_text(year), border=1, align='C')
+        pdf.cell(col_widths[2], 8, safe_text(rooms_formatted), border=1, align='L')
+        pdf.cell(col_widths[3], 8, str(len(room_students)), border=1, align='C')
+        pdf.ln()
+    
+    # Overall total
+    pdf.ln(5)
+    pdf.set_font("Arial", style='B', size=11)
+    pdf.cell(0, 8, safe_text(f"Overall total students: {total_students}"), ln=True, align='C')
+    
+    # Save the file
+    filename = f"{session.lower()}_classroom_details.pdf"
+    filepath = os.path.join(base_folder, filename)
+    pdf.output(filepath)
+    print(f"PDF saved to {filepath}")
 
 while True:
     date_input = input("Enter the target date (DD/MM/YYYY) or type 'exit' to finish: ")
@@ -1010,8 +787,6 @@ while True:
         print(f"No exams found on {date_input}. Please check the Excel file.")
         continue
 
-    show_gui = input("Do you want to see the GUI after processing all exams? (yes/no): ").strip().lower()
-
     morning_exams_data = []
     print("\n--- Getting inputs for Morning Exams ---")
     for idx, exam_details_item in morning_schedule.items():
@@ -1026,26 +801,25 @@ while True:
                     f"{current_exam['Subject Name']} on {current_exam['Date']} (Morning)? (yes/no): ")
         multiple_courses = input(prompt_str).strip().lower()
         courses_list = []
-        
         if multiple_courses == "yes":
             print(f"Enter each course one by one. Type 'done' when finished.")
             while True:
                 course = input("Course: ").strip()
                 if course.lower() == "done":
                     break
-                if course: 
+                if course:
                     courses_list.append(course)
         else:
             course = input(f"Which course is writing this exam? ").strip()
             if course:
                 courses_list.append(course)
-                
+        
         current_exam["courses"] = courses_list
         morning_exams_data.append({
             "exam_details": current_exam,
             "exam_info": exam_info
         })
-
+    
     afternoon_exams_data = []
     print("\n--- Getting inputs for Afternoon Exams ---")
     for idx, exam_details_item in afternoon_schedule.items():
@@ -1060,20 +834,19 @@ while True:
                     f"{current_exam['Subject Name']} on {current_exam['Date']} (Afternoon)? (yes/no): ")
         multiple_courses = input(prompt_str).strip().lower()
         courses_list = []
-        
         if multiple_courses == "yes":
             print(f"Enter each course one by one. Type 'done' when finished.")
             while True:
                 course = input("Course: ").strip()
                 if course.lower() == "done":
                     break
-                if course: 
+                if course:
                     courses_list.append(course)
         else:
             course = input(f"Which course is writing this exam? ").strip()
             if course:
                 courses_list.append(course)
-                
+        
         current_exam["courses"] = courses_list
         afternoon_exams_data.append({
             "exam_details": current_exam,
@@ -1093,20 +866,21 @@ while True:
         combined_morning_info["Date"] = morning_exams_data[0]["exam_info"]["Date"]
         combined_morning_info["Subject Code"] = " / ".join(morning_subject_codes)
         combined_morning_info["Subject Name"] = " / ".join(morning_subject_names)
-
+        combined_morning_info["courses"] = combined_morning_courses  # Add courses to exam_info
+        
         print("\n--- Generating combined PDFs for Morning Exams ---")
         classrooms_content, base_folder = generate_seating_arrangement(
             combined_morning_info, 
             "Morning", 
-            combined_morning_info, 
-            combined_morning_courses
+            combined_morning_info,  # Fix: Pass the full exam info dictionary
+            combined_morning_courses  # Pass the courses list
         )
         if classrooms_content:
             attendance_data = attendance_sheet(classrooms_content, df)
             pdf_attendance_sheet(attendance_data, combined_morning_info, base_folder)
             course_year_to_classrooms = print_classroom_details(classrooms_content, student_year_lists)
             pdf_classroom_details(course_year_to_classrooms, combined_morning_info, base_folder)
-
+    
     if afternoon_exams_data:
         combined_afternoon_courses = []
         afternoon_subject_codes = []
@@ -1120,27 +894,19 @@ while True:
         combined_afternoon_info["Date"] = afternoon_exams_data[0]["exam_info"]["Date"]
         combined_afternoon_info["Subject Code"] = " / ".join(afternoon_subject_codes)
         combined_afternoon_info["Subject Name"] = " / ".join(afternoon_subject_names)
-
+        combined_afternoon_info["courses"] = combined_afternoon_courses  # Add courses to exam_info
+        
         print("\n--- Generating combined PDFs for Afternoon Exams ---")
         classrooms_content, base_folder = generate_seating_arrangement(
             combined_afternoon_info, 
             "Afternoon", 
-            combined_afternoon_info, 
-            combined_afternoon_courses
+            combined_afternoon_info,  # Fix: Pass the full exam info dictionary
+            combined_afternoon_courses  # Pass the courses list
         )
         if classrooms_content:
             attendance_data = attendance_sheet(classrooms_content, df)
             pdf_attendance_sheet(attendance_data, combined_afternoon_info, base_folder)
             course_year_to_classrooms = print_classroom_details(classrooms_content, student_year_lists)
             pdf_classroom_details(course_year_to_classrooms, combined_afternoon_info, base_folder)
-
-    if show_gui == "yes":
-        print("\nShowing GUI for combined Morning and Afternoon PDFs...")
-        if morning_exams_data:
-            attendance_sheet_gui(attendance_data, combined_morning_info)
-            display_classroom_details_gui(classrooms_content, student_year_lists, combined_morning_info)
-        if afternoon_exams_data:
-            attendance_sheet_gui(attendance_data, combined_afternoon_info)
-            display_classroom_details_gui(classrooms_content, student_year_lists, combined_afternoon_info)
 
     print(f"\nAll combined PDFs have been generated successfully for the exams on {date_input}")
