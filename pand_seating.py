@@ -160,7 +160,7 @@ def get_exam_schedule_until_date(data_records, target_date_str):
                 'Subject Code': record['Subject Code'],
                 'Date': record["Date"]
             }
-    print(f"Exam schedule for {target_date_str}: {exam_schedule}")  # Debug print
+    print(f"Exam schedule for {target_date_str}: {exam_schedule}")  
     return exam_schedule
 
 def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date):
@@ -245,7 +245,7 @@ def select_classrooms(classes, student_count):
                 if classroom not in custom_order and classroom.startswith(prefix):
                     custom_order.append(classroom)
     
-    print(f"\nSelecting classrooms for {student_count} students (need capacity for {required_capacity})")  # Debug print
+    print(f"\nSelecting classrooms for {student_count} students (need capacity for {required_capacity})")  
     
     for classroom in custom_order:
         for capacity_key, capacity_details in classes.items():
@@ -265,13 +265,13 @@ def select_classrooms(classes, student_count):
                 
                 selected_classrooms[capacity_key]["classrooms_list"].append(classroom)
                 total_capacity += classroom_capacity
-                print(f"  Selected classroom {classroom} (capacity {classroom_capacity}) - Total capacity now: {total_capacity}")  # Debug print
+                print(f"  Selected classroom {classroom} (capacity {classroom_capacity}) - Total capacity now: {total_capacity}")  
     
     if total_capacity < required_capacity:
         print(f"WARNING: Not enough classroom capacity for all students! Need {required_capacity}, have {total_capacity}")
     
     total_rooms = sum(len(details['classrooms_list']) for details in selected_classrooms.values())
-    print(f"Selected {total_rooms} classrooms with total capacity {total_capacity} for {student_count} students")  # Debug print
+    print(f"Selected {total_rooms} classrooms with total capacity {total_capacity} for {student_count} students")  
     
     return selected_classrooms
 
@@ -289,7 +289,7 @@ def seating_arrangement_for_course(classes, students_data, course):
         all_students.extend(active_courses[name])
 
     total_students = len(all_students)
-    print(f"Total students for course {course}: {total_students}")  # Debug print
+    print(f"Total students for course {course}: {total_students}")  
     student_index = 0
     bench_count = 0
     empty_seats = []
@@ -357,15 +357,13 @@ def seating_arrangement_for_course(classes, students_data, course):
     if non_seated_students > 0:
         print(f"Not all students could be seated. Seated: {seated_students}, Non-seated: {non_seated_students}")
 
-    print(f"Classrooms content for course {course}: {classrooms_content}")  # Debug print
+    print(f"Classrooms content for course {course}: {classrooms_content}")  
     return arrangement, classrooms_content
 
 def generate_seating_arrangement(exam_details, session, exam_info, courses_list):
     if exam_details:
         print(f"\nCourses selected: {courses_list}")
         print(f"Generating seating arrangement for {session} session...")
-        
-        # Count students for selected courses
         student_count = count_students_for_courses(students_data, courses_list)
         print(f"Total students for {session} session: {student_count}")
         
@@ -373,17 +371,14 @@ def generate_seating_arrangement(exam_details, session, exam_info, courses_list)
             print("No students found for the selected courses. Please check course names.")
             return {}, ""
         
-        # Select appropriate classrooms based on student count
         selected_classrooms = select_classrooms(classes, student_count)
         
-        # Use selected classrooms for seating arrangement
         arrangement, classrooms_content = seating_arrangement_for_course(selected_classrooms, students_data, courses_list)
         
         base_folder = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, exam_details['Date'])
         os.makedirs(base_folder, exist_ok=True)
         save_seating_arrangement_pdf(arrangement, selected_classrooms, exam_info, session, exam_details['Date'])
         
-        # Print a summary of the classrooms used
         print("\nClassrooms used in this arrangement:")
         for capacity, details in selected_classrooms.items():
             print(f"  {capacity.split('_')[0]} capacity rooms: {', '.join(details['classrooms_list'])}")
@@ -428,11 +423,9 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
     bw_image_path = "download_bw.png"
     Image.open("download_bw.png").convert('L').save(bw_image_path)
 
-    # Get all subject codes and names
     all_subject_codes = basic.get("Subject Code", "N/A").split(" / ")
     all_subject_names = basic.get("Subject Name", "N/A").split(" / ")
     
-    # Create a mapping of subject code to subject name for easy lookup
     subject_map = {code: name for code, name in zip(all_subject_codes, all_subject_names)}
 
     for classroom, students in attendance_data.items():
@@ -453,7 +446,6 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
 
         pdf.cell(210, 6, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')
 
-        # Move room number, date, and time info up before subject details
         actual_classroom_name = classroom.replace("classroom_", "")
         pdf.set_font("Arial", style='B', size=12)
         pdf.cell(0, 8, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')
@@ -462,25 +454,16 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
         pdf.set_xy(160, pdf.get_y())
         pdf.cell(40, 8, f"Date: {date_str}    Time: {time_slot}", ln=True, align='R')
 
-        # Add Subject Code and Subject Name on the same line, with code on left and name on right
         if "Subject Code" in basic and "Subject Name" in basic:
-            # We'll show all subjects for the session (simplified approach)
-            # In a more complex implementation, we could determine which subjects 
-            # are actually being written in this classroom
-            pdf.ln(1)  # Small space before subject details
-            pdf.set_font("Arial", style='B', size=7)  # Bold font for both
-            
+            pdf.set_font("Arial", style='B', size=7)  
             for i, (code, name) in enumerate(zip(all_subject_codes, all_subject_names)):
-                # Left side: Subject Code
                 pdf.cell(90, 5, safe_text(f"Subject Code: {code}"), align='L')
-                
-                # Right side: Subject Name
                 pdf.cell(90, 5, safe_text(f"Subject Name: {name}"), align='R', ln=True)
                 
-                if i < len(all_subject_codes) - 1:  # Add space between multiple subjects
+                if i < len(all_subject_codes) - 1:  
                     pdf.ln(1)
             
-            pdf.ln(2)  # Space after subject details
+            pdf.ln(2)  
 
         pdf.set_font("Arial", size=8, style='B')
         column_widths = [15, 50, 70, 30, 35]
@@ -531,8 +514,6 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
 def print_classroom_details(classrooms_content, student_year_lists):
     course_year_to_classrooms = {}
     print(f"Processing {len(classrooms_content)} classrooms")
-    
-    # Debug classrooms_content keys
     print(f"Classroom keys: {list(classrooms_content.keys())[:5]}...")
     
     for course_year, students_list in student_year_lists.items():
@@ -544,7 +525,6 @@ def print_classroom_details(classrooms_content, student_year_lists):
                 course_year_to_classrooms[course_year][classroom] = intersection
                 
     print(f"Created course_year_to_classrooms with {len(course_year_to_classrooms)} branch-year entries")
-    # Print a sample of the data
     if course_year_to_classrooms:
         sample_key = next(iter(course_year_to_classrooms))
         print(f"Sample data for {sample_key}: {len(course_year_to_classrooms[sample_key])} classrooms")
@@ -552,21 +532,13 @@ def print_classroom_details(classrooms_content, student_year_lists):
     return course_year_to_classrooms
 
 def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
-    """
-    Generate a PDF with detailed classroom assignments by branch and year.
-    Only includes students who are actually writing the specified exam based on course info.
-    """
-    from fpdf import FPDF
-    from datetime import datetime
-    
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
 
-    # Extract basic info
     subject_codes = exam_info.get("Subject Code", "").split(" / ")
     subject_names = exam_info.get("Subject Name", "").split(" / ")
     session = "Morning" if "9:00" in exam_info.get("time_slot", "") else "Afternoon"
-    exam_courses = exam_info.get("courses", [])  # Courses writing this exam
+    exam_courses = exam_info.get("courses", [])  
     
     print(f"PDF Classroom Details - Filtering for courses: {exam_courses}")
     print(f"Total branch-year keys before filtering: {len(course_year_to_classrooms)}")
@@ -574,12 +546,10 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # Process all classrooms first to organize data
     all_classroom_data = {}
     branch_year_students = {}
     total_students = 0
     
-    # First, organize all students by classroom
     for branch_year_key, classrooms_dict in course_year_to_classrooms.items():
         parts = branch_year_key.split('_year_')
         if len(parts) != 2:
@@ -588,7 +558,6 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
         branch = parts[0]
         year = parts[1]
         
-        # More flexible course matching - check both directions
         should_include = True
         if exam_courses:
             should_include = False
@@ -603,18 +572,15 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
         else:
             print(f"Including {branch_year_key} for courses {exam_courses}")
         
-        # For each classroom assigned to this branch and year
         for classroom_key, students in classrooms_dict.items():
             room_name = classroom_key.replace("classroom_", "")
             
             if room_name not in all_classroom_data:
                 all_classroom_data[room_name] = []
                 
-            # Add each student with their branch and year info
             for student_id in students:
                 if student_id == "EMPTY":
                     continue
-                    
                 student_info = {
                     "id": student_id,
                     "branch": branch,
@@ -622,7 +588,6 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
                 }
                 all_classroom_data[room_name].append(student_info)
                 
-                # Also track by branch and year
                 if branch_year_key not in branch_year_students:
                     branch_year_students[branch_year_key] = []
                 branch_year_students[branch_year_key].append((room_name, student_id))
@@ -635,7 +600,6 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
     if total_students == 0:
         print(f"Warning: No students found for courses {exam_courses}. PDF will be empty.")
         print("Check if course codes match with branch prefixes in student data.")
-        # Create a basic PDF with an error message
         pdf.add_page()
         pdf.set_font("Arial", size=14, style='B')
         pdf.cell(0, 10, "No student data found", ln=True, align='C')
@@ -649,24 +613,20 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
         print(f"Created empty PDF with warning message: {filepath}")
         return
     
-    # Now generate the PDF pages
     for idx, (subject_code, subject_name) in enumerate(zip(subject_codes, subject_names)):
         pdf.add_page()
         
-        # Add heading
         pdf.set_font("Arial", size=14, style='B')
         pdf.cell(0, 10, safe_text(f"Subject: {subject_code} - {subject_name}"), ln=True, align='C')
         pdf.set_font("Arial", size=12, style='B')
         pdf.cell(0, 10, safe_text(f"Date: {exam_info['Date']} - {exam_info['time_slot']}"), ln=True, align='C')
         
-        # List the courses writing this exam
         if exam_courses:
             pdf.set_font("Arial", size=10)
             pdf.cell(0, 8, safe_text(f"Courses: {', '.join(exam_courses)}"), ln=True, align='C')
         
         pdf.ln(5)
         
-        # Add table headers
         pdf.set_font("Arial", size=10, style='B')
         headers = ["Room No", "Branch", "Year", "Roll No. Range", "Count"]
         col_widths = [30, 25, 20, 85, 20]
@@ -675,11 +635,9 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
             pdf.cell(w, 8, safe_text(h), border=1, align='C')
         pdf.ln()
         
-        # Group by room and branch+year
         room_branch_year_data = {}
         
         for room_name, students in sorted(all_classroom_data.items()):
-            # Group students by branch and year in this room
             by_branch_year = {}
             for student in students:
                 key = f"{student['branch']}_{student['year']}"
@@ -687,10 +645,8 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
                     by_branch_year[key] = []
                 by_branch_year[key].append(student['id'])
             
-            # Store grouped data
             room_branch_year_data[room_name] = by_branch_year
         
-        # Fill table with room data
         pdf.set_font("Arial", size=9)
         total_in_subject = 0
         
@@ -712,12 +668,10 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
                 
                 total_in_subject += len(students_sorted)
         
-        # Summary for this subject
         pdf.ln(5)
         pdf.set_font("Arial", style='B', size=10)
         pdf.cell(0, 8, safe_text(f"Total students for {subject_code}: {total_in_subject}"), ln=True, align='C')
     
-    # Overall summary page
     pdf.add_page()
     pdf.set_font("Arial", size=14, style='B')
     pdf.cell(0, 10, safe_text("Summary by Branch and Year"), ln=True, align='C')
@@ -734,7 +688,6 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
         pdf.cell(w, 8, safe_text(h), border=1, align='C')
     pdf.ln()
     
-    # Show summary for each branch and year
     pdf.set_font("Arial", size=9)
     for branch_year_key, room_students in sorted(branch_year_students.items()):
         if not room_students:
@@ -746,14 +699,12 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
         
         branch, year = parts
         
-        # Count students per room
         rooms_dict = {}
         for room, student_id in room_students:
             if room not in rooms_dict:
                 rooms_dict[room] = 0
             rooms_dict[room] += 1
         
-        # Format room list as "A301(15), A302(10), ..." where numbers are student counts
         rooms_formatted = ", ".join([f"{r}({c})" for r, c in sorted(rooms_dict.items())])
         
         pdf.cell(col_widths[0], 8, safe_text(branch), border=1, align='C')
@@ -762,12 +713,10 @@ def pdf_classroom_details(course_year_to_classrooms, exam_info, base_folder):
         pdf.cell(col_widths[3], 8, str(len(room_students)), border=1, align='C')
         pdf.ln()
     
-    # Overall total
     pdf.ln(5)
     pdf.set_font("Arial", style='B', size=11)
     pdf.cell(0, 8, safe_text(f"Overall total students: {total_students}"), ln=True, align='C')
     
-    # Save the file
     filename = f"{session.lower()}_classroom_details.pdf"
     filepath = os.path.join(base_folder, filename)
     pdf.output(filepath)
@@ -872,8 +821,8 @@ while True:
         classrooms_content, base_folder = generate_seating_arrangement(
             combined_morning_info, 
             "Morning", 
-            combined_morning_info,  # Fix: Pass the full exam info dictionary
-            combined_morning_courses  # Pass the courses list
+            combined_morning_info, 
+            combined_morning_courses  
         )
         if classrooms_content:
             attendance_data = attendance_sheet(classrooms_content, df)
@@ -894,14 +843,14 @@ while True:
         combined_afternoon_info["Date"] = afternoon_exams_data[0]["exam_info"]["Date"]
         combined_afternoon_info["Subject Code"] = " / ".join(afternoon_subject_codes)
         combined_afternoon_info["Subject Name"] = " / ".join(afternoon_subject_names)
-        combined_afternoon_info["courses"] = combined_afternoon_courses  # Add courses to exam_info
+        combined_afternoon_info["courses"] = combined_afternoon_courses  
         
         print("\n--- Generating combined PDFs for Afternoon Exams ---")
         classrooms_content, base_folder = generate_seating_arrangement(
             combined_afternoon_info, 
             "Afternoon", 
-            combined_afternoon_info,  # Fix: Pass the full exam info dictionary
-            combined_afternoon_courses  # Pass the courses list
+            combined_afternoon_info,  
+            combined_afternoon_courses  
         )
         if classrooms_content:
             attendance_data = attendance_sheet(classrooms_content, df)
