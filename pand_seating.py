@@ -169,6 +169,19 @@ def get_exam_schedule_until_date(data_records, target_date_str):
             }
     return exam_schedule
 
+def date_to_foldername(date_str):
+    """Convert a date string (DD/MM/YYYY or DD-MM-YYYY) to a folder-safe format (DD-MM-YYYY)."""
+    if "/" in date_str:
+        parts = date_str.split("/")
+    elif "-" in date_str:
+        parts = date_str.split("-")
+    else:
+        raise ValueError("Unknown date format")
+    day = parts[0].zfill(2)
+    month = parts[1].zfill(2)
+    year = parts[2]
+    return f"{day}-{month}-{year}"
+
 def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date):
     pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -224,7 +237,8 @@ def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date)
                 pdf.ln()
             pdf.ln()
 
-    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, date)
+    folder_date = date_to_foldername(date)
+    downloads_path = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, folder_date)
     os.makedirs(downloads_path, exist_ok=True)
     pdf.output(os.path.join(downloads_path, "seating_arrangement.pdf"))
     print(f"PDF saved to {downloads_path}")
@@ -358,26 +372,88 @@ def seating_arrangement_for_course(classes, students_data, course):
 
     return arrangement, classrooms_content
 
-def generate_seating_arrangement(exam_details, session, exam_info, courses_list):
+def select_classrooms_special(classes, student_count):
+    custom_order = ["E203A", "E203B"]
+    for prefix in ["E", "A", "B", "C"]:
+        for capacity_key, capacity_details in classes.items():
+            for classroom in capacity_details["classrooms_list"]:
+                if classroom not in custom_order and classroom.startswith(prefix):
+                    custom_order.append(classroom)
+    selected_classrooms = {}
+    total_capacity = 0
+    for classroom in custom_order:
+        for capacity_key, capacity_details in classes.items():
+            if classroom in capacity_details["classrooms_list"]:
+                classroom_capacity = capacity_details["benches"]
+                if total_capacity >= student_count:
+                    break
+                if capacity_key not in selected_classrooms:
+                    selected_classrooms[capacity_key] = {
+                        "columns": capacity_details["columns"],
+                        "rows": capacity_details["rows"],
+                        "benches": capacity_details["benches"],
+                        "classrooms_list": []
+                    }
+                selected_classrooms[capacity_key]["classrooms_list"].append(classroom)
+                total_capacity += classroom_capacity
+        if total_capacity >= student_count:
+            break
+    return selected_classrooms
+
+def seating_arrangement_alternate(classes, students_data, course):
+    random.seed(42)
+    active_courses = {
+        k: v for k, v in students_data.items() 
+        if any(k.startswith(c) for c in course) and v and len(v) > 0
+    }
+    active_course_names = list(active_courses.keys())
+    random.shuffle(active_course_names)
+    all_students = []
+    for name in active_course_names:
+        all_students.extend(active_courses[name])
+    total_students = len(all_students)
+    student_index = 0
+    arrangement = {}
+    classrooms_content = {}
+    for capacity, details in classes.items():
+        arrangement[capacity] = [
+            [["" for _ in range(details['rows'])] for _ in range(details['columns'])]
+            for _ in details['classrooms_list']
+        ]
+    for capacity, details in classes.items():
+        for classroom_index, classroom in enumerate(details['classrooms_list']):
+            classrooms_content[f"classroom_{classroom}"] = []
+            for col in range(details['columns']):
+                for row in range(details['rows']):
+                    if (col + row) % 2 == 0 and student_index < len(all_students):
+                        student = all_students[student_index]
+                        arrangement[capacity][classroom_index][col][row] = student
+                        classrooms_content[f"classroom_{classroom}"].append(student)
+                        student_index += 1
+                    else:
+                        arrangement[capacity][classroom_index][col][row] = "EMPTY"
+    return arrangement, classrooms_content
+
+def generate_seating_arrangement(exam_details, session, exam_info, courses_list, use_special=False):
     if exam_details:
         student_count = count_students_for_courses(students_data, courses_list)
-        
         if student_count == 0:
             print("No students found for the selected courses. Please check course names.")
             return {}, ""
-
-        selected_classrooms = select_classrooms(classes, student_count)
-
-        arrangement, classrooms_content = seating_arrangement_for_course(selected_classrooms, students_data, courses_list)
-        
-        base_folder = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, exam_details['Date'])
+        if use_special:
+            selected_classrooms = select_classrooms_special(classes, student_count)
+            arrangement, classrooms_content = seating_arrangement_alternate(selected_classrooms, students_data, courses_list)
+        else:
+            selected_classrooms = select_classrooms(classes, student_count)
+            arrangement, classrooms_content = seating_arrangement_for_course(selected_classrooms, students_data, courses_list)
+        folder_date = date_to_foldername(exam_details['Date'])
+        base_folder = os.path.join(os.path.expanduser("~"), "Downloads", "Seating Arrangement", session, folder_date)
         os.makedirs(base_folder, exist_ok=True)
         save_seating_arrangement_pdf(arrangement, selected_classrooms, exam_info, session, exam_details['Date'])
-
         return classrooms_content, base_folder
     return {}, ""
 
-def attendance_sheet(classrooms_content, df):
+def attendance_sheet_grouped(classrooms_content, df, exam_info):
     attendance_data = {}
     for index, row in df.iterrows():
         reg_no = row.get("Roll No")
@@ -385,14 +461,25 @@ def attendance_sheet(classrooms_content, df):
         if reg_no and name:
             attendance_data[reg_no] = name
 
+    regno_to_course = {}
+    for course in exam_info.get("courses", []):
+        for key in students_data:
+            if key.startswith(course):
+                for reg_no in students_data[key]:
+                    regno_to_course[reg_no] = course
+
     skip_words = {"Column 1", "Column 2", "Column 3", "Column 4", "Column 5", "Column 6", "Door", "side", "Door Side", "Date"}
     attendance_sheet_data = {}
     for classroom, students in classrooms_content.items():
-        attendance_sheet_data[classroom] = []
+        course_map = {}
         for student in students:
             if student not in skip_words:
                 name = attendance_data.get(student, "Unknown")
-                attendance_sheet_data[classroom].append((name, student))
+                course = regno_to_course.get(student, "Unknown")
+                if course not in course_map:
+                    course_map[course] = []
+                course_map[course].append((name, student))
+        attendance_sheet_data[classroom] = course_map
     return attendance_sheet_data
 
 def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
@@ -402,100 +489,82 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
 
-    basic = exam_info
-    college_name = basic["college_name"]
-    report_title = basic["report_title"]
-    sub_title = basic["sub_title"]
-    exam_details_text = basic["exam_details"]
-    time_slot = basic["time_slot"]
-
+    college_name = exam_info["college_name"]
+    report_title = exam_info["report_title"]
+    sub_title = exam_info["sub_title"]
+    time_slot = exam_info["time_slot"]
     date_str = datetime.today().strftime("%d/%m/%Y")
-
     bw_image_path = "download_bw.png"
     Image.open("download_bw.png").convert('L').save(bw_image_path)
 
-    all_subject_codes = basic.get("Subject Code", "N/A").split(" / ")
-    all_subject_names = basic.get("Subject Name", "N/A").split(" / ")
+    course_to_subject = {}
+    subject_codes = exam_info.get("Subject Code", "").split(" / ")
+    subject_names = exam_info.get("Subject Name", "").split(" / ")
+    courses = exam_info.get("courses", [])
+    for i, course in enumerate(courses):
+        code = subject_codes[i] if i < len(subject_codes) else subject_codes[0] if subject_codes else ""
+        name = subject_names[i] if i < len(subject_names) else subject_names[0] if subject_names else ""
+        course_to_subject[course] = (code, name)
 
-    subject_map = {code: name for code, name in zip(all_subject_codes, all_subject_names)}
-
-    for classroom, students in attendance_data.items():
+    for classroom, course_map in attendance_data.items():
         pdf.add_page()
-
         pdf.image(bw_image_path, 10, 5, 20)
-
         pdf.set_y(5)
-
-        pdf.set_font("Times", style='B', size=16)
-        pdf.cell(210, 10, safe_text(college_name), ln=True, align='C')
-
-        pdf.set_font("Arial", style='BU', size=12)
-        pdf.cell(210, 6, safe_text(report_title), ln=True, align='C')
-
-        pdf.set_font("Arial", style='B', size=12)
-        pdf.cell(210, 6, safe_text(sub_title), ln=True, align='C')
-
-        pdf.cell(210, 6, safe_text(f"{basic['sem_type']} Semester - {basic['exam_type']} Exam - {basic['month_details']} {datetime.today().year}"), ln=True, align='C')
-
+        pdf.set_font("Times", style='B', size=11)  
+        pdf.cell(210, 8, safe_text(college_name), ln=True, align='C')
+        pdf.set_font("Arial", style='BU', size=9) 
+        pdf.cell(210, 5, safe_text(report_title), ln=True, align='C')
+        pdf.set_font("Arial", style='B', size=8)  
+        pdf.cell(210, 5, safe_text(sub_title), ln=True, align='C')
+        pdf.set_font("Arial", style='B', size=8) 
+        pdf.cell(210, 5, safe_text(f"{exam_info['sem_type']} Semester - {exam_info['exam_type']} Exam - {exam_info['month_details']} {datetime.today().year}"), ln=True, align='C')
         actual_classroom_name = classroom.replace("classroom_", "")
-        pdf.set_font("Arial", style='B', size=12)
-        pdf.cell(0, 8, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')
-
-        pdf.set_font("Arial", size=10, style='B')
+        pdf.set_font("Arial", style='B', size=7)
+        pdf.cell(0, 7, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')
+        pdf.set_font("Arial", size=7, style='B')
         pdf.set_xy(160, pdf.get_y())
-        pdf.cell(40, 8, f"Date: {date_str}    Time: {time_slot}", ln=True, align='R')
+        pdf.cell(40, 7, f"Date: {date_str}    Time: {time_slot}", ln=True, align='R')
 
-        if "Subject Code" in basic and "Subject Name" in basic:
-            pdf.set_font("Arial", style='B', size=7)
-            
-            for i, (code, name) in enumerate(zip(all_subject_codes, all_subject_names)):
-                pdf.cell(90, 5, safe_text(f"Subject Code: {code}"), align='L')
-
-                pdf.cell(90, 5, safe_text(f"Subject Name: {name}"), align='R', ln=True)
-                
-                if i < len(all_subject_codes) - 1:
-                    pdf.ln(1)
-            
-            pdf.ln(2) 
-
-        pdf.set_font("Arial", size=8, style='B')
-        column_widths = [15, 50, 70, 30, 35]
-        row_height = 6
-        start_x = (210 - sum(column_widths)) / 2
-        pdf.set_x(start_x)
-        headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
-        for i, header in enumerate(headers):
-            pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
-        pdf.ln(row_height)
-
-        pdf.set_font("Arial", size=8)
-        for idx, (name, reg_no) in enumerate(students, start=1):
+        for course, students in course_map.items():
+            code, name = course_to_subject.get(course, ("", ""))
+            pdf.set_font("Arial", style='B', size=9)
+            pdf.cell(0, 6, safe_text(f"Subject Code: {code}    Subject Name: {name}"), ln=True, align='L')
+            pdf.ln(1)
+            pdf.set_font("Arial", size=5, style='B')
+            column_widths = [15, 50, 70, 30, 35]
+            row_height = 6
+            start_x = (210 - sum(column_widths)) / 2
             pdf.set_x(start_x)
-            pdf.cell(column_widths[0], row_height, str(idx), border=1, align='C')
-            pdf.cell(column_widths[1], row_height, reg_no, border=1, align='C')
-            if len(name) > 30:
-                pdf.set_font("Arial", size=7)
-                pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
-                pdf.set_font("Arial", size=8)
-            else:
-                pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
-            pdf.cell(column_widths[3], row_height, "", border=1, align='C')
-            pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
+            headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
+            for i, header in enumerate(headers):
+                pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
+            pdf.ln(row_height)
+            pdf.set_font("Arial", size=8)
+            for idx, (name, reg_no) in enumerate(students, start=1):
+                pdf.set_x(start_x)
+                pdf.cell(column_widths[0], row_height, str(idx), border=1, align='C')
+                pdf.cell(column_widths[1], row_height, reg_no, border=1, align='C')
+                if len(name) > 30:
+                    pdf.set_font("Arial", size=7)
+                    pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
+                    pdf.set_font("Arial", size=8)
+                else:
+                    pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
+                pdf.cell(column_widths[3], row_height, "", border=1, align='C')
+                pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
+            pdf.ln(2)
 
         summary_width = 60
         summary_height = 18
         total_width = summary_width * 3
         start_x = (210 - total_width) / 2
         current_y = pdf.get_y()
-
         pdf.set_xy(start_x, current_y)
         pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n", border=1, align='L')
-
         pdf.set_xy(start_x + summary_width, current_y)
         pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n", border=1, align='L')
-
         pdf.set_xy(start_x + 2 * summary_width, current_y)
         pdf.set_font("Arial", size=7)
         pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams\n\n", border=1, align='L')
@@ -549,11 +618,10 @@ def send_email_notifications(classrooms_content, df, exam_info, sender_email, se
                 body = f"""Dear Student,
 
 You have been allotted to Classroom: {room_name}
-Exam: {subject_codes[0]} - {subject_names[0]}
 Date: {exam_date}
 Time: {time_slot}
 
-Best regards."""
+All the Best for your exam!"""
                 msg.attach(MIMEText(body, 'plain'))
                 
                 try:
@@ -566,7 +634,6 @@ Best regards."""
     print(f"Emails successfully sent: {success_count}")
 
 def map_exam_details_to_courses(exams_data):
-    """Map user inputs for courses to their respective exam details."""
     mapped_exams = []
     for exam_data in exams_data:
         current_exam = exam_data["exam_details"]
@@ -577,7 +644,7 @@ def map_exam_details_to_courses(exams_data):
         multiple_courses = input(prompt_str).strip().lower()
         courses_list = []
         
-        if multiple_courses == "yes":
+        if (multiple_courses == "yes"):
             print("Enter each course one by one. Type 'done' when finished.")
             while True:
                 course = input("Course: ").strip()
@@ -590,7 +657,6 @@ def map_exam_details_to_courses(exams_data):
             if course:
                 courses_list.append(course)
         
-        # Map the courses to the current exam details
         mapped_exams.append({
             "courses": courses_list,
             "Subject Code": current_exam["Subject Code"],
@@ -613,123 +679,61 @@ while True:
         print(f"No exams found on {date_input}. Please check the Excel file.")
         continue
 
-    morning_exams_data = []
-    print("\n--- Getting inputs for Morning Exams ---")
-    for idx, exam_details_item in morning_schedule.items():
-        current_exam = {**exam_details_item, "Date": format_target_date(date_input)}
-        print(f"\nMorning Exam: {current_exam['Subject Code']} - {current_exam['Subject Name']}")
-        exam_info = morning_exam_info.copy()
-        exam_info["Date"] = current_exam["Date"]
-        exam_info["Subject Code"] = current_exam["Subject Code"]
-        exam_info["Subject Name"] = current_exam["Subject Name"]
-        
-        prompt_str = (f"Are there multiple courses writing {current_exam['Subject Code']} - "
-                    f"{current_exam['Subject Name']} on {current_exam['Date']} (Morning)? (yes/no): ")
-        multiple_courses = input(prompt_str).strip().lower()
-        courses_list = []
-        if multiple_courses == "yes":
-            print(f"Enter each course one by one. Type 'done' when finished.")
-            while True:
-                course = input("Course: ").strip()
-                if course.lower() == "done":
-                    break
-                if course:
-                    courses_list.append(course)
-        else:
-            course = input(f"Which course is writing this exam? ").strip()
-            if course:
-                courses_list.append(course)
-        
-        current_exam["courses"] = courses_list
-        morning_exams_data.append({
-            "exam_details": current_exam,
-            "exam_info": exam_info
-        })
-    
-    afternoon_exams_data = []
-    print("\n--- Getting inputs for Afternoon Exams ---")
-    for idx, exam_details_item in afternoon_schedule.items():
-        current_exam = {**exam_details_item, "Date": format_target_date(date_input)}
-        print(f"\nAfternoon Exam: {current_exam['Subject Code']} - {current_exam['Subject Name']}")
-        exam_info = afternoon_exam_info.copy()
-        exam_info["Date"] = current_exam["Date"]
-        exam_info["Subject Code"] = current_exam["Subject Code"]
-        exam_info["Subject Name"] = current_exam["Subject Name"]
-        
-        prompt_str = (f"Are there multiple courses writing {current_exam['Subject Code']} - "
-                    f"{current_exam['Subject Name']} on {current_exam['Date']} (Afternoon)? (yes/no): ")
-        multiple_courses = input(prompt_str).strip().lower()
-        courses_list = []
-        if multiple_courses == "yes":
-            print(f"Enter each course one by one. Type 'done' when finished.")
-            while True:
-                course = input("Course: ").strip()
-                if course.lower() == "done":
-                    break
-                if course:
-                    courses_list.append(course)
-        else:
-            course = input(f"Which course is writing this exam? ").strip()
-            if course:
-                courses_list.append(course)
-        
-        current_exam["courses"] = courses_list
-        afternoon_exams_data.append({
-            "exam_details": current_exam,
-            "exam_info": exam_info
-        })
+    all_exams_data = []
+    print("\n--- Getting inputs for ALL Exams (Morning & Afternoon) ---")
+    for session_name, schedule, exam_info_template in [
+        ("Morning", morning_schedule, morning_exam_info),
+        ("Afternoon", afternoon_schedule, afternoon_exam_info)
+    ]:
+        for idx, exam_details_item in schedule.items():
+            current_exam = {**exam_details_item, "Date": format_target_date(date_input)}
+            exam_info = exam_info_template.copy()
+            exam_info["Date"] = current_exam["Date"]
+            exam_info["Subject Code"] = current_exam["Subject Code"]
+            exam_info["Subject Name"] = current_exam["Subject Name"]
+            all_exams_data.append({
+                "exam_details": current_exam,
+                "exam_info": exam_info,
+                "session": session_name
+            })
 
-    # Prompt for email and password once
     sender_email = input("Enter your email address: ").strip()
     sender_password = getpass.getpass("Enter your email password (input will be hidden): ").strip()
 
-    morning_total_students = 0
-    afternoon_total_students = 0
+    total_students_by_session = {"Morning": 0, "Afternoon": 0}
 
-    if morning_exams_data:
-        print("\n--- Mapping Morning Exams to Courses ---")
-        mapped_morning_exams = map_exam_details_to_courses(morning_exams_data)
-        combined_morning_info = morning_exam_info.copy()
-        combined_morning_info["Date"] = mapped_morning_exams[0]["Date"]
-        combined_morning_info["Subject Code"] = " / ".join([exam["Subject Code"] for exam in mapped_morning_exams])
-        combined_morning_info["Subject Name"] = " / ".join([exam["Subject Name"] for exam in mapped_morning_exams])
-        combined_morning_courses = list(set(course for exam in mapped_morning_exams for course in exam["courses"]))
-        combined_morning_info["courses"] = combined_morning_courses
-        
-        classrooms_content, base_folder = generate_seating_arrangement(
-            combined_morning_info, 
-            "Morning", 
-            combined_morning_info,  
-            combined_morning_courses  
-        )
-        if classrooms_content:
-            morning_total_students = sum(len(students) for students in classrooms_content.values())
-            attendance_data = attendance_sheet(classrooms_content, df)
-            pdf_attendance_sheet(attendance_data, combined_morning_info, base_folder)
-            send_email_notifications(classrooms_content, df, combined_morning_info, sender_email, sender_password)
+    use_special = len(all_exams_data) <= 3
 
-    if afternoon_exams_data:
-        print("\n--- Mapping Afternoon Exams to Courses ---")
-        mapped_afternoon_exams = map_exam_details_to_courses(afternoon_exams_data)
-        combined_afternoon_info = afternoon_exam_info.copy()
-        combined_afternoon_info["Date"] = mapped_afternoon_exams[0]["Date"]
-        combined_afternoon_info["Subject Code"] = " / ".join([exam["Subject Code"] for exam in mapped_afternoon_exams])
-        combined_afternoon_info["Subject Name"] = " / ".join([exam["Subject Name"] for exam in mapped_afternoon_exams])
-        combined_afternoon_courses = list(set(course for exam in mapped_afternoon_exams for course in exam["courses"]))
-        combined_afternoon_info["courses"] = combined_afternoon_courses
-        
-        classrooms_content, base_folder = generate_seating_arrangement(
-            combined_afternoon_info, 
-            "Afternoon", 
-            combined_afternoon_info,  
-            combined_afternoon_courses  
-        )
-        if classrooms_content:
-            afternoon_total_students = sum(len(students) for students in classrooms_content.values())
-            attendance_data = attendance_sheet(classrooms_content, df)
-            pdf_attendance_sheet(attendance_data, combined_afternoon_info, base_folder)
-            send_email_notifications(classrooms_content, df, combined_afternoon_info, sender_email, sender_password)
+    mapped_exams_by_session = {"Morning": [], "Afternoon": []}
+    for session_name in ["Morning", "Afternoon"]:
+        exams_for_session = [e for e in all_exams_data if e["session"] == session_name]
+        if exams_for_session:
+            mapped_exams = map_exam_details_to_courses(exams_for_session)
+            mapped_exams_by_session[session_name] = mapped_exams
 
-    print(f"\nTotal students in the morning: {morning_total_students}")
-    print(f"Total students in the afternoon: {afternoon_total_students}")
+    for session_name in ["Morning", "Afternoon"]:
+        mapped_exams = mapped_exams_by_session[session_name]
+        if mapped_exams:
+            combined_info = (morning_exam_info if session_name == "Morning" else afternoon_exam_info).copy()
+            combined_info["Date"] = mapped_exams[0]["Date"]
+            combined_info["Subject Code"] = " / ".join([exam["Subject Code"] for exam in mapped_exams])
+            combined_info["Subject Name"] = " / ".join([exam["Subject Name"] for exam in mapped_exams])
+            combined_courses = list(set(course for exam in mapped_exams for course in exam["courses"]))
+            combined_info["courses"] = combined_courses
+
+            classrooms_content, base_folder = generate_seating_arrangement(
+                combined_info,
+                session_name,
+                combined_info,
+                combined_courses,
+                use_special=use_special
+            )
+            if classrooms_content:
+                total_students_by_session[session_name] = sum(len(students) for students in classrooms_content.values())
+                attendance_data = attendance_sheet_grouped(classrooms_content, df, combined_info)
+                pdf_attendance_sheet(attendance_data, combined_info, base_folder)
+                send_email_notifications(classrooms_content, df, combined_info, sender_email, sender_password)
+
+    print(f"\nTotal students in the morning: {total_students_by_session['Morning']}")
+    print(f"Total students in the afternoon: {total_students_by_session['Afternoon']}")
     print(f"All combined PDFs have been generated successfully for the exams on {date_input}")
