@@ -23,8 +23,8 @@ This is a specialized seating arrangement generator for the college Amrita Vishw
 ## 📄 Description
 
 The **seating_pandas** branch automates the seating arrangement process for exams at Amrita Vishwa Vidyapeetham, Bangalore. By uploading a CSV file, the code generates the seating arrangement efficiently and accurately. This project supports the arrangement of seating for the seven B-Tech courses mentioned below:
-- 💻 CSE (Computer Science Engineering)
-- 🤖 AIE (Artificial Intelligence Engineering)
+- 💻 CSE (Computer Science and Engineering)
+- 🤖 AIE (Artificial Intelligence and Engineering)
 - 📊 AID (Artificial Intelligence and Data Science)
 - 📡 ECE (Electrical and Communication Engineering)
 - ⚡ EEE (Electrical and Electronics Engineering)
@@ -37,9 +37,9 @@ The **seating_pandas** branch automates the seating arrangement process for exam
 
 ## 🌟 Features
 
-1. The project is capable of generating seating arrangement for all the B-Tech Courses
+1. The project is capable of generating seating arrangement for all the B-Tech Courses (CSE, AIE, AID, ECE, EEE, EAC, ELC, MEE, RAE)
 2. It can generate attendence sheets which are used to know about the attendence of students for the exams
-3. It generates a exam seating arrangement chart which helps in the navigation of the students to their respective exam halls
+3. It sends a email notification to the students about their classroom where they are writing their exam
 
 ---
 
@@ -47,7 +47,7 @@ The **seating_pandas** branch automates the seating arrangement process for exam
 
 1. **Upload the CSV File**: Prepare your CSV file with the required format and upload it to the code.
 2. **Run the Code**: Execute the Python script to generate the seating arrangement.
-3. **Library Requirements**: Pandas, FPDF (A PDF generation library), tkinter (A GUI generation library).
+3. **Library Requirements**: Pandas, FPDF (A PDF generation library), tkinter (A GUI generation library), email (A library used to send emails via code)
 
 ---
 
@@ -56,5 +56,6 @@ The **seating_pandas** branch automates the seating arrangement process for exam
 - 🎲 **Random**
 - 🛠️ **Pandas**
 - 📋 **FPDF**
+- ✉️ **email**
 
 ---
