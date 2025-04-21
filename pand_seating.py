@@ -170,7 +170,6 @@ def get_exam_schedule_until_date(data_records, target_date_str):
     return exam_schedule
 
 def date_to_foldername(date_str):
-    """Convert a date string (DD/MM/YYYY or DD-MM-YYYY) to a folder-safe format (DD-MM-YYYY)."""
     if "/" in date_str:
         parts = date_str.split("/")
     elif "-" in date_str:
@@ -244,7 +243,6 @@ def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date)
     print(f"PDF saved to {downloads_path}")
 
 def count_students_for_courses(students_data, courses_list):
-    """Count the total number of students for the selected courses"""
     student_count = 0
     for key, student_list in students_data.items():
         if any(course in key for course in courses_list):
@@ -415,6 +413,7 @@ def seating_arrangement_alternate(classes, students_data, course):
     student_index = 0
     arrangement = {}
     classrooms_content = {}
+    empty_seats = []
     for capacity, details in classes.items():
         arrangement[capacity] = [
             [["" for _ in range(details['rows'])] for _ in range(details['columns'])]
@@ -432,6 +431,16 @@ def seating_arrangement_alternate(classes, students_data, course):
                         student_index += 1
                     else:
                         arrangement[capacity][classroom_index][col][row] = "EMPTY"
+                        empty_seats.append((capacity, classroom_index, col, row))
+    for seat in empty_seats:
+        if student_index < len(all_students):
+            capacity, classroom_index, col, row = seat
+            if arrangement[capacity][classroom_index][col][row] == "EMPTY":
+                student = all_students[student_index]
+                arrangement[capacity][classroom_index][col][row] = student
+                classroom_name = classes[capacity]['classrooms_list'][classroom_index]
+                classrooms_content[f"classroom_{classroom_name}"].append(student)
+                student_index += 1
     return arrangement, classrooms_content
 
 def generate_seating_arrangement(exam_details, session, exam_info, courses_list, use_special=False):
@@ -441,7 +450,7 @@ def generate_seating_arrangement(exam_details, session, exam_info, courses_list,
             print("No students found for the selected courses. Please check course names.")
             return {}, ""
         if use_special:
-            selected_classrooms = select_classrooms_special(classes, student_count)
+            selected_classrooms = classes  
             arrangement, classrooms_content = seating_arrangement_alternate(selected_classrooms, students_data, courses_list)
         else:
             selected_classrooms = select_classrooms(classes, student_count)
