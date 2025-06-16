@@ -674,6 +674,94 @@ def map_exam_details_to_courses(exams_data):
         })
     return mapped_exams
 
+def generate_classroom_details_pdf(classrooms_content, exam_info, base_folder, mapped_exams):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    
+    def safe_text(s):
+        return s.encode('latin-1', 'replace').decode('latin-1')
+    
+    bw_image_path = "download1_bw.png"
+    if not os.path.exists(bw_image_path):
+        print(f"Warning: Header image {bw_image_path} not found")
+    
+    pdf.add_page()
+    
+    if os.path.exists(bw_image_path):
+        pdf.image(bw_image_path, 10, 10, 190)  
+        pdf.ln(30)  
+    
+    pdf.set_font("Arial", style='B', size=12)
+    pdf.cell(0, 10, f"Date: {exam_info.get('Date', '')}    Time: {exam_info.get('time_slot', '')}", ln=True, align='C')
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", style='B', size=12)
+    pdf.cell(0, 8, "SUBJECT-WISE STUDENT ALLOCATION", ln=True, align='C')
+    pdf.ln(5)
+    
+    for exam in mapped_exams:
+        pdf.set_font("Arial", style='B', size=11)
+        pdf.cell(0, 8, f"Subject Code: {exam['Subject Code']}", ln=True)
+        pdf.cell(0, 6, f"Subject Name: {exam['Subject Name']}", ln=True)
+        pdf.ln(3)
+        
+        # Table for this subject
+        pdf.set_font("Arial", style='B', size=9)
+        subject_col_widths = [50, 80, 30, 25]
+        subject_headers = ["Classroom", "Students", "Branch", "Count"]
+        
+        for i, header in enumerate(subject_headers):
+            pdf.cell(subject_col_widths[i], 6, header, border=1, align='C')
+        pdf.ln()
+        
+        subject_courses = exam['courses']
+        subject_classroom_data = {}
+        
+        for classroom, students in classrooms_content.items():
+            room_name = classroom.replace("classroom_", "")
+            subject_students = []
+            
+            for student in students:
+                if student != "EMPTY" and isinstance(student, str) and len(student) >= 11:
+                    student_branch = student[8:11]
+                    if any(student_branch == course or any(key.startswith(course) for key in students_data.keys() if student in students_data[key]) for course in subject_courses):
+                        subject_students.append(student)
+            
+            if subject_students:
+                branch_count = {}
+                for student in subject_students:
+                    branch = student[8:11] if len(student) >= 11 else ""
+                    branch_count[branch] = branch_count.get(branch, 0) + 1
+                
+                subject_classroom_data[room_name] = {
+                    'students': subject_students,
+                    'branch_count': branch_count
+                }
+        
+        pdf.set_font("Arial", size=8)
+        for room_name, data in sorted(subject_classroom_data.items()):
+            student_display = ", ".join(data['students'][:2])
+            if len(data['students']) > 2:
+                student_display += f"... (+{len(data['students']) - 2})"
+            
+            branch_display = ", ".join([f"{branch}({count})" for branch, count in data['branch_count'].items()])
+            
+            pdf.cell(subject_col_widths[0], 5, room_name, border=1, align='C')
+            pdf.cell(subject_col_widths[1], 5, safe_text(student_display), border=1, align='L')
+            pdf.cell(subject_col_widths[2], 5, branch_display, border=1, align='C')
+            pdf.cell(subject_col_widths[3], 5, str(len(data['students'])), border=1, align='C')
+            pdf.ln()
+        
+        if not subject_classroom_data:
+            pdf.set_font("Arial", size=8, style='I')
+            pdf.cell(0, 5, f"No students found for courses: {', '.join(subject_courses)}", ln=True)
+        
+        pdf.ln(8)
+    
+    pdf_path = os.path.join(base_folder, "classroom_details.pdf")
+    pdf.output(pdf_path)
+    print(f"Classroom details PDF saved to {pdf_path}")
+
 while True:
     date_input = input("Enter the target date (DD/MM/YYYY) or type 'exit' to finish: ")
     if date_input.lower() == "exit":
@@ -684,45 +772,97 @@ while True:
     afternoon_schedule = get_exam_schedule_until_date(afternoon_data, date_input)
 
     print(f"Found {len(morning_schedule)} morning exams and {len(afternoon_schedule)} afternoon exams on {date_input}")
+    
+    # Print exam details
+    if morning_schedule:
+        print("\n=== Morning Exams ===")
+        for idx, exam in morning_schedule.items():
+            print(f"  {exam['Subject Code']} - {exam['Subject Name']}")
+    
+    if afternoon_schedule:
+        print("\n=== Afternoon Exams ===")
+        for idx, exam in afternoon_schedule.items():
+            print(f"  {exam['Subject Code']} - {exam['Subject Name']}")
+    
     if not morning_schedule and not afternoon_schedule:
         print(f"No exams found on {date_input}. Please check the Excel file.")
         continue
 
     all_exams_data = []
-    print("\n--- Getting inputs for ALL Exams (Morning & Afternoon) ---")
-    for session_name, schedule, exam_info_template in [
-        ("Morning", morning_schedule, morning_exam_info),
-        ("Afternoon", afternoon_schedule, afternoon_exam_info)
-    ]:
-        for idx, exam_details_item in schedule.items():
+    mapped_exams_by_session = {"Morning": [], "Afternoon": []}
+    
+    if morning_schedule:
+        print("\n--- MORNING SESSION INPUT ---")
+        morning_exams_data = []
+        for idx, exam_details_item in morning_schedule.items():
             current_exam = {**exam_details_item, "Date": format_target_date(date_input)}
-            exam_info = exam_info_template.copy()
+            exam_info = morning_exam_info.copy()
             exam_info["Date"] = current_exam["Date"]
             exam_info["Subject Code"] = current_exam["Subject Code"]
             exam_info["Subject Name"] = current_exam["Subject Name"]
-            all_exams_data.append({
+            morning_exams_data.append({
                 "exam_details": current_exam,
                 "exam_info": exam_info,
-                "session": session_name
+                "session": "Morning"
             })
+        mapped_exams_by_session["Morning"] = map_exam_details_to_courses(morning_exams_data)
+        all_exams_data.extend(morning_exams_data)
+    
+    if afternoon_schedule:
+        print("\n--- AFTERNOON SESSION INPUT ---")
+        afternoon_exams_data = []
+        for idx, exam_details_item in afternoon_schedule.items():
+            current_exam = {**exam_details_item, "Date": format_target_date(date_input)}
+            exam_info = afternoon_exam_info.copy()
+            exam_info["Date"] = current_exam["Date"]
+            exam_info["Subject Code"] = current_exam["Subject Code"]
+            exam_info["Subject Name"] = current_exam["Subject Name"]
+            afternoon_exams_data.append({
+                "exam_details": current_exam,
+                "exam_info": exam_info,
+                "session": "Afternoon"
+            })
+        mapped_exams_by_session["Afternoon"] = map_exam_details_to_courses(afternoon_exams_data)
+        all_exams_data.extend(afternoon_exams_data)
 
-    sender_email = input("Enter your email address: ").strip()
+    sender_email = input("\nEnter your email address: ").strip()
     sender_password = getpass.getpass("Enter your email password (input will be hidden): ").strip()
 
-    total_students_by_session = {"Morning": 0, "Afternoon": 0}
-
-    use_special = len(all_exams_data) <= 3
-
-    mapped_exams_by_session = {"Morning": [], "Afternoon": []}
+    print("\n" + "="*60)
+    print("                 SUMMARY OF INPUTS")
+    print("="*60)
+    print(f"Exam Type: {exam_details_data['exam_type']}")
+    print(f"Academic Year: {exam_details_data['academic_year']}")
+    print(f"Semester Type: {exam_details_data['sem_type']} Semester")
+    print(f"Exam Month: {exam_details_data['month_details']}")
+    print(f"Current Year: {current_year}")
+    print(f"Target Date: {date_input}")
+    print(f"Email Address: {sender_email}")
+    
+    print("\n" + "-"*60)
+    print("               COMPLETE EXAM LIST")
+    print("-"*60)
+    
     for session_name in ["Morning", "Afternoon"]:
-        exams_for_session = [e for e in all_exams_data if e["session"] == session_name]
-        if exams_for_session:
-            mapped_exams = map_exam_details_to_courses(exams_for_session)
-            mapped_exams_by_session[session_name] = mapped_exams
+        mapped_exams = mapped_exams_by_session[session_name]
+        if mapped_exams:
+            print(f"\n{session_name.upper()} SESSION ({morning_exam_info['time_slot'] if session_name == 'Morning' else afternoon_exam_info['time_slot']}):")
+            for exam_idx, exam in enumerate(mapped_exams, 1):
+                print(f"  {exam_idx}. {exam['Subject Code']} - {exam['Subject Name']}")
+                print(f"     Courses: {', '.join(exam['courses'])}")
+    
+    print("\n" + "="*60)
+    print("         STARTING SEATING ARRANGEMENT GENERATION")
+    print("="*60)
+
+    total_students_by_session = {"Morning": 0, "Afternoon": 0}
+    use_special = len(all_exams_data) <= 3
 
     for session_name in ["Morning", "Afternoon"]:
         mapped_exams = mapped_exams_by_session[session_name]
         if mapped_exams:
+            print(f"\nProcessing {session_name} Session...")
+            
             combined_info = (morning_exam_info if session_name == "Morning" else afternoon_exam_info).copy()
             combined_info["Date"] = mapped_exams[0]["Date"]
             combined_info["Subject Code"] = " / ".join([exam["Subject Code"] for exam in mapped_exams])
@@ -738,11 +878,19 @@ while True:
                 use_special=use_special
             )
             if classrooms_content:
-                total_students_by_session[session_name] = sum(len(students) for students in classrooms_content.values())
+                total_students_by_session[session_name] = sum(len([s for s in students if s != "EMPTY"]) for students in classrooms_content.values())
+                print(f"Generated seating for {total_students_by_session[session_name]} students in {session_name} session")
+                
                 attendance_data = attendance_sheet_grouped(classrooms_content, df, combined_info)
                 pdf_attendance_sheet(attendance_data, combined_info, base_folder)
+                print(f"Generated attendance sheet for {session_name} session")
+                
+                generate_classroom_details_pdf(classrooms_content, combined_info, base_folder, mapped_exams)
+                print(f"Generated classroom details PDF for {session_name} session")
+                
                 send_email_notifications(classrooms_content, df, combined_info, sender_email, sender_password)
+                print(f"Sent email notifications for {session_name} session")
 
     print(f"\nTotal students in the morning: {total_students_by_session['Morning']}")
     print(f"Total students in the afternoon: {total_students_by_session['Afternoon']}")
-    print(f"All combined PDFs have been generated successfully for the exams on {date_input}")
+    print(f"All PDFs generated successfully for exams on {date_input}")
