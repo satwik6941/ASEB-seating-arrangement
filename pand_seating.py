@@ -192,39 +192,40 @@ def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date)
         for classroom_index, classroom in enumerate(details['classrooms_list']):
             if capacity == "40_capacity" or classroom_index % 2 == 0:
                 pdf.add_page()
-            pdf.set_font("Arial", size=16, style='B')
-            pdf.cell(200, 10, txt=college_name, ln=True, align='C')
-            pdf.set_font("Arial", size=12, style='B')
+            pdf.set_font("Arial", size=18, style='B') 
+            pdf.cell(200, 12, txt=college_name, ln=True, align='C')  
+            pdf.set_font("Arial", size=14, style='B') 
             pdf.cell(200, 10, txt=f"Seating Arrangement for {exam_info['sub_title']} - {exam_info['month_details']} {current_year}", ln=True, align='C')
-            pdf.set_font("Arial", size=12, style='B')
+            pdf.set_font("Arial", size=14, style='B')  
 
-            pdf.set_font("Arial", size=16, style='B')
-            pdf.cell(200, 10, txt=f"Classroom {classroom}", ln=True, align='C')
-            pdf.set_font("Arial", size=12, style='B')
+            pdf.set_font("Arial", size=18, style='B') 
+            pdf.cell(200, 12, txt=f"Classroom {classroom}", ln=True, align='C')  
+            pdf.set_font("Arial", size=14, style='B')  
 
             if capacity == "36_capacity":
-                table_width = details['columns'] * 30
-                cell_width = 30
-                font_size = 8
+                table_width = details['columns'] * 32 
+                cell_width = 32 
+                font_size = 10  
             else:
-                table_width = details['columns'] * 35
-                cell_width = 35
-                font_size = 10
+                table_width = details['columns'] * 38  
+                cell_width = 38  
+                font_size = 12  
             start_x = (210 - table_width) / 2
 
             pdf.set_x(start_x)
             for col in range(details['columns']):
                 if col == 0:
-                    pdf.cell(cell_width, 6, txt=f"Date: {today_date}", border=0, align='C')
+                    pdf.cell(cell_width, 8, txt=f"Date: {today_date}", border=0, align='C')  
                 elif col == details['columns'] - 1:
-                    pdf.cell(cell_width, 6, txt="Door Side", border=0, align='C')
+                    pdf.cell(cell_width, 8, txt="Door Side", border=0, align='C')  
                 else:
-                    pdf.cell(cell_width, 6, txt="", border=0)
+                    pdf.cell(cell_width, 8, txt="", border=0)
             pdf.ln()
 
             pdf.set_x(start_x)
+            pdf.set_font("Arial", size=font_size + 1, style='B')  
             for col in range(details['columns']):
-                pdf.cell(cell_width, 6, txt=f"Column {col + 1}", border=1, align='C')
+                pdf.cell(cell_width, 8, txt=f"Column {col + 1}", border=1, align='C')  
             pdf.ln()
 
             pdf.set_font("Arial", size=font_size, style='B')
@@ -232,7 +233,7 @@ def save_seating_arrangement_pdf(arrangement, classes, exam_info, session, date)
                 pdf.set_x(start_x)
                 for col in range(details['columns']):
                     seat = arrangement[capacity][classroom_index][col][row]
-                    pdf.cell(cell_width, 12, txt=seat if seat else "EMPTY", border=1, align='C')
+                    pdf.cell(cell_width, 15, txt=seat if seat else "EMPTY", border=1, align='C')  
                 pdf.ln()
             pdf.ln()
 
@@ -493,7 +494,7 @@ def attendance_sheet_grouped(classrooms_content, df, exam_info):
 
 def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
     pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_auto_page_break(auto=False, margin=15)  # Disabled auto page break
 
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
@@ -517,66 +518,94 @@ def pdf_attendance_sheet(attendance_data, exam_info, base_folder):
 
     for classroom, course_map in attendance_data.items():
         pdf.add_page()
-        pdf.image(bw_image_path, 10, 5, 20)
+        
+        pdf.image(bw_image_path, 10, 5, 18)
         pdf.set_y(5)
-        pdf.set_font("Times", style='B', size=11)  
-        pdf.cell(210, 8, safe_text(college_name), ln=True, align='C')
-        pdf.set_font("Arial", style='BU', size=9) 
-        pdf.cell(210, 5, safe_text(report_title), ln=True, align='C')
-        pdf.set_font("Arial", style='B', size=8)  
-        pdf.cell(210, 5, safe_text(sub_title), ln=True, align='C')
-        pdf.set_font("Arial", style='B', size=8) 
-        pdf.cell(210, 5, safe_text(f"{exam_info['sem_type']} Semester - {exam_info['exam_type']} Exam - {exam_info['month_details']} {datetime.today().year}"), ln=True, align='C')
+        pdf.set_font("Times", style='B', size=11)  # Restored from 12
+        pdf.cell(210, 6, safe_text(college_name), ln=True, align='C')
+        pdf.set_font("Arial", style='BU', size=9)  # Restored from 10
+        pdf.cell(210, 4, safe_text(report_title), ln=True, align='C')
+        pdf.set_font("Arial", style='B', size=8)  # Restored from 9
+        pdf.cell(210, 4, safe_text(sub_title), ln=True, align='C')
+        pdf.set_font("Arial", style='B', size=8)  # Restored from 9
+        pdf.cell(210, 4, safe_text(f"{exam_info['sem_type']} Semester - {exam_info['exam_type']} Exam - {exam_info['month_details']} {datetime.today().year}"), ln=True, align='C')
+        
         actual_classroom_name = classroom.replace("classroom_", "")
-        pdf.set_font("Arial", style='B', size=7)
-        pdf.cell(0, 7, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')
-        pdf.set_font("Arial", size=7, style='B')
+        pdf.set_font("Arial", style='B', size=7)  # Restored from 8
+        pdf.cell(0, 5, safe_text(f"Room No.: {actual_classroom_name}"), ln=False, align='L')
+        pdf.set_font("Arial", size=7, style='B')  # Restored from 8
         pdf.set_xy(160, pdf.get_y())
-        pdf.cell(40, 7, f"Date: {date_str}    Time: {time_slot}", ln=True, align='R')
+        pdf.cell(40, 5, f"Date: {date_str}    Time: {time_slot}", ln=True, align='R')
+
+        # Calculate available space for tables
+        current_y = pdf.get_y()
+        available_height = 297 - current_y - 25  # Leave space for summary section
+        
+        # Count total students across all courses in this classroom
+        total_students = sum(len(students) for students in course_map.values())
+        
+        # Dynamic row height calculation
+        if total_students > 0:
+            # Reserve space for headers and subject titles
+            header_space = len(course_map) * 12  # Space for subject headers
+            table_header_space = len(course_map) * 8  # Space for table headers
+            remaining_space = available_height - header_space - table_header_space
+            row_height = max(4, min(7, remaining_space / total_students))  # Between 4 and 7
+        else:
+            row_height = 6
 
         for course, students in course_map.items():
             code, name = course_to_subject.get(course, ("", ""))
-            pdf.set_font("Arial", style='B', size=9)
-            pdf.cell(0, 6, safe_text(f"Subject Code: {code}    Subject Name: {name}"), ln=True, align='L')
-            pdf.ln(1)
-            pdf.set_font("Arial", size=5, style='B')
-            column_widths = [15, 50, 70, 30, 35]
-            row_height = 6
+            pdf.set_font("Arial", style='B', size=9)  # Restored from 10
+            pdf.cell(0, 4, safe_text(f"Subject Code: {code}    Subject Name: {name}"), ln=True, align='L')
+            
+            pdf.set_font("Arial", size=5, style='B')  # Restored from 7
+            column_widths = [15, 50, 65, 30, 35]  # Adjusted widths
+            table_header_height = 6  # Slightly reduced
             start_x = (210 - sum(column_widths)) / 2
             pdf.set_x(start_x)
             headers = ["S.No", "Register No.", "Name", "Booklet No.", "Signature"]
             for i, header in enumerate(headers):
-                pdf.cell(column_widths[i], row_height, safe_text(header), border=1, align='C')
-            pdf.ln(row_height)
-            pdf.set_font("Arial", size=8)
+                pdf.cell(column_widths[i], table_header_height, safe_text(header), border=1, align='C')
+            pdf.ln(table_header_height)
+            
+            pdf.set_font("Arial", size=8)  # Restored from 9
             for idx, (name, reg_no) in enumerate(students, start=1):
                 pdf.set_x(start_x)
                 pdf.cell(column_widths[0], row_height, str(idx), border=1, align='C')
                 pdf.cell(column_widths[1], row_height, reg_no, border=1, align='C')
-                if len(name) > 30:
-                    pdf.set_font("Arial", size=7)
+                
+                # Dynamic font size for long names
+                if len(name) > 25:
+                    pdf.set_font("Arial", size=7)  # Reduced for very long names
                     pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
-                    pdf.set_font("Arial", size=8)
+                    pdf.set_font("Arial", size=8)  # Restored from 9
                 else:
                     pdf.cell(column_widths[2], row_height, safe_text(name), border=1, align='C')
+                
                 pdf.cell(column_widths[3], row_height, "", border=1, align='C')
                 pdf.cell(column_widths[4], row_height, "", border=1, ln=True, align='C')
-            pdf.ln(2)
+            
+            pdf.ln(1)  # Reduced spacing between courses
 
+        # Summary section at bottom - restored original sizes
         summary_width = 60
-        summary_height = 18
+        summary_height = 15
         total_width = summary_width * 3
         start_x = (210 - total_width) / 2
-        current_y = pdf.get_y()
-        pdf.set_xy(start_x, current_y)
-        pdf.set_font("Arial", size=7)
-        pdf.multi_cell(summary_width, summary_height / 3, "Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n", border=1, align='L')
-        pdf.set_xy(start_x + summary_width, current_y)
-        pdf.set_font("Arial", size=7)
-        pdf.multi_cell(summary_width, summary_height / 3, "Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n", border=1, align='L')
-        pdf.set_xy(start_x + 2 * summary_width, current_y)
-        pdf.set_font("Arial", size=7)
-        pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams\n\n", border=1, align='L')
+        
+        # Position summary at bottom of page
+        summary_y = 297 - 30  # Fixed position near bottom
+        pdf.set_xy(start_x, summary_y)
+        
+        pdf.set_font("Arial", size=7)  # Restored from 8
+        pdf.multi_cell(summary_width, summary_height / 3, "Total No of Students Present: __________\n\nTotal No of Students Absent: __________\n\n", border=1, align='C')
+        pdf.set_xy(start_x + summary_width, summary_y)
+        pdf.set_font("Arial", size=7)  # Restored from 8
+        pdf.multi_cell(summary_width, summary_height / 3, "Register Nos. (Malpractice): ___________\n\nRegister Nos. (absentees): ___________\n\n", border=1, align='C')
+        pdf.set_xy(start_x + 2 * summary_width, summary_y)
+        pdf.set_font("Arial", size=7)  # Restored from 8
+        pdf.multi_cell(summary_width, summary_height / 3, "Room Superintendent\n\nDeputy Controller of Exams\n\n", border=1, align='C')
 
     downloads_path = os.path.join(base_folder, "attendance_sheet.pdf")
     pdf.output(downloads_path)
@@ -681,6 +710,23 @@ def generate_classroom_details_pdf(classrooms_content, exam_info, base_folder, m
     def safe_text(s):
         return s.encode('latin-1', 'replace').decode('latin-1')
     
+    def format_reg_no(reg_no):
+        if len(reg_no) >= 13:
+            return f"BL.EN.U4{reg_no[8:]}"
+        return reg_no
+    
+    def format_reg_range(students):
+        if not students:
+            return ""
+        
+        formatted_students = [format_reg_no(s) for s in students]
+        formatted_students.sort()
+        
+        if len(formatted_students) == 1:
+            return formatted_students[0]
+        else:
+            return f"{formatted_students[0]} - {formatted_students[-1]}"
+    
     bw_image_path = "download1_bw.png"
     if not os.path.exists(bw_image_path):
         print(f"Warning: Header image {bw_image_path} not found")
@@ -691,27 +737,26 @@ def generate_classroom_details_pdf(classrooms_content, exam_info, base_folder, m
         pdf.image(bw_image_path, 10, 10, 190)  
         pdf.ln(30)  
     
-    pdf.set_font("Arial", style='B', size=12)
-    pdf.cell(0, 10, f"Date: {exam_info.get('Date', '')}    Time: {exam_info.get('time_slot', '')}", ln=True, align='C')
+    pdf.set_font("Arial", style='B', size=14)  # Keep increased size for classroom details
+    pdf.cell(0, 12, f"Date: {exam_info.get('Date', '')}    Time: {exam_info.get('time_slot', '')}", ln=True, align='C')
     pdf.ln(5)
     
-    pdf.set_font("Arial", style='B', size=12)
-    pdf.cell(0, 8, "SUBJECT-WISE STUDENT ALLOCATION", ln=True, align='C')
+    pdf.set_font("Arial", style='B', size=14)  # Keep increased size for classroom details
+    pdf.cell(0, 10, "SUBJECT-WISE STUDENT ALLOCATION", ln=True, align='C')
     pdf.ln(5)
     
     for exam in mapped_exams:
-        pdf.set_font("Arial", style='B', size=11)
-        pdf.cell(0, 8, f"Subject Code: {exam['Subject Code']}", ln=True)
-        pdf.cell(0, 6, f"Subject Name: {exam['Subject Name']}", ln=True)
+        pdf.set_font("Arial", style='B', size=12)  # Keep increased size for classroom details
+        subject_line = f"{exam['Subject Code']} {exam['Subject Name']}"
+        pdf.cell(0, 10, safe_text(subject_line), ln=True, align='C')
         pdf.ln(3)
         
-        # Table for this subject
-        pdf.set_font("Arial", style='B', size=9)
+        pdf.set_font("Arial", style='B', size=10)  # Keep increased size for classroom details
         subject_col_widths = [50, 80, 30, 25]
         subject_headers = ["Classroom", "Students", "Branch", "Count"]
         
         for i, header in enumerate(subject_headers):
-            pdf.cell(subject_col_widths[i], 6, header, border=1, align='C')
+            pdf.cell(subject_col_widths[i], 8, header, border=1, align='C')
         pdf.ln()
         
         subject_courses = exam['courses']
@@ -738,23 +783,21 @@ def generate_classroom_details_pdf(classrooms_content, exam_info, base_folder, m
                     'branch_count': branch_count
                 }
         
-        pdf.set_font("Arial", size=8)
+        pdf.set_font("Arial", size=9)  # Keep increased size for classroom details
         for room_name, data in sorted(subject_classroom_data.items()):
-            student_display = ", ".join(data['students'][:2])
-            if len(data['students']) > 2:
-                student_display += f"... (+{len(data['students']) - 2})"
+            student_display = format_reg_range(data['students'])
             
-            branch_display = ", ".join([f"{branch}({count})" for branch, count in data['branch_count'].items()])
+            branch_display = ", ".join(data['branch_count'].keys())
             
-            pdf.cell(subject_col_widths[0], 5, room_name, border=1, align='C')
-            pdf.cell(subject_col_widths[1], 5, safe_text(student_display), border=1, align='L')
-            pdf.cell(subject_col_widths[2], 5, branch_display, border=1, align='C')
-            pdf.cell(subject_col_widths[3], 5, str(len(data['students'])), border=1, align='C')
+            pdf.cell(subject_col_widths[0], 7, room_name, border=1, align='C')
+            pdf.cell(subject_col_widths[1], 7, safe_text(student_display), border=1, align='C')
+            pdf.cell(subject_col_widths[2], 7, branch_display, border=1, align='C')
+            pdf.cell(subject_col_widths[3], 7, str(len(data['students'])), border=1, align='C')
             pdf.ln()
         
         if not subject_classroom_data:
-            pdf.set_font("Arial", size=8, style='I')
-            pdf.cell(0, 5, f"No students found for courses: {', '.join(subject_courses)}", ln=True)
+            pdf.set_font("Arial", size=9, style='I')  # Keep increased size for classroom details
+            pdf.cell(0, 7, f"No students found for courses: {', '.join(subject_courses)}", ln=True)
         
         pdf.ln(8)
     
@@ -773,7 +816,6 @@ while True:
 
     print(f"Found {len(morning_schedule)} morning exams and {len(afternoon_schedule)} afternoon exams on {date_input}")
     
-    # Print exam details
     if morning_schedule:
         print("\n=== Morning Exams ===")
         for idx, exam in morning_schedule.items():
